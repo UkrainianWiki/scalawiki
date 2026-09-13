@@ -106,7 +106,8 @@ class StatParams(arguments: Seq[String]) extends ScallopConf(arguments) {
     opt[Boolean](name = "regional-stat", descr = "report regional statistics")
   val regionalDetails = opt[Boolean](
     name = "regional-details",
-    descr = "report regional detailed statistics"
+    descr =
+      "for each oblast, report a current-totals breakdown by today's raions and hromadas, nested in that oblast's detail page"
   )
   val authorsStat =
     opt[Boolean](name = "authors-stat", descr = "report authors statistics")

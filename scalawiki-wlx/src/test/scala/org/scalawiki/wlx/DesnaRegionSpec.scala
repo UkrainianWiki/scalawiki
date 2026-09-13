@@ -23,7 +23,7 @@ class DesnaRegionSpec extends Specification {
     "detect places" in {
       val rows = desna.places
       val places = rows.map(desna.getPlace)
-      places.map(_.size).distinct === List(1, 2, 5, 3, 7)
+      places.map(_.size).distinct === List(1, 2, 3, 5, 7)
     }
 
     "Погреби" in {

@@ -5,13 +5,14 @@ import org.scalawiki.MwBot
 import org.scalawiki.dto.markup.Table
 import org.scalawiki.wlx.dto.AdmDivision
 import org.scalawiki.wlx.stat.ContestStat
-import org.scalawiki.wlx.{ImageDB, MonumentDB}
+import org.scalawiki.wlx.{ImageDB, KatotthResolver, MonumentDB}
 
 class MonumentsPicturedByRegion(
     val stat: ContestStat,
     uploadImages: Boolean = false,
     regionParam: Option[AdmDivision] = None,
-    gallery: Boolean = false
+    gallery: Boolean = false,
+    katotthResolutionParam: Option[Map[String, KatotthResolver.Resolution]] = None
 ) extends Reporter {
 
   def this(
@@ -45,6 +46,25 @@ class MonumentsPicturedByRegion(
     .flatMap(_.monumentIds)
     .toSet
 
+  /** Monument id -> current-day (KATOTTH) location and the page that
+    * produced it, computed once and shared with per-oblast child reports
+    * rather than recomputed per oblast.
+    */
+  lazy val katotthResolutionDetailed: Map[String, KatotthResolver.Resolution] =
+    katotthResolutionParam.getOrElse(KatotthResolver.resolveDetailed(monumentDb))
+
+  lazy val katotthResolution: Map[String, AdmDivision] =
+    katotthResolutionDetailed.view.mapValues(_.admDivision).toMap
+
+  /** Monument id -> the page that produced its resolution, kept consistent
+    * with `katotthResolution` (both come from the same winning `Monument`
+    * for any id shared by two different monuments due to a data-entry
+    * error) rather than looked up separately via `MonumentDB.byId`, which
+    * could disagree about which of the two "wins".
+    */
+  lazy val pageById: Map[String, String] =
+    katotthResolutionDetailed.view.mapValues(_.page).toMap
+
   def pageName(region: String, newly: Boolean = false): String = {
     if (newly) s"Monuments newly pictured by region in ${region}"
     else s"Monuments pictured by region in ${region}"
@@ -52,7 +72,49 @@ class MonumentsPicturedByRegion(
 
   override def asText: String = {
     val header = s"\n==$name==\n"
-    header + table.asWiki + regionalStatImages().getOrElse("") + wrongRegionIds
+    // `wrongRegionIds` is only meaningful for the top-level oblast table's
+    // own (pre-2020 KOATUU-based) region matching; the oblast subpage now
+    // reports the same kind of problem itself, with an explanation, in
+    // `communityBreakdown`'s own "Data issues" list.
+    if (parentRegion == contest.country)
+      header + table.asWiki + regionalStatImages().getOrElse("") + wrongRegionIds
+    else header + communityBreakdown
+  }
+
+  /** Current-totals raion/hromada breakdown for this oblast, using Ukraine's
+    * present-day (KATOTTH) administrative division. Only meaningful when
+    * this instance is scoped to a single oblast (see [[regionData]]).
+    */
+  def communityBreakdown: String = {
+    // `byRegion` can include a monument whose id only looks like it belongs
+    // here because of Monument.getRegionId's second-segment fallback (e.g.
+    // a "99-…" special-nomination id coincidentally starting its middle
+    // segment with another oblast's real code) - those aren't genuinely
+    // geographic in this oblast, so they're reported as bad ids rather
+    // than mixed into the normal (or Unresolved) counts.
+    val candidateIds = monumentDb.byRegion(parentRegion.code).map(_.id).toSet
+    val (byIdPrefix, badIdsByPrefix) = candidateIds.partition(_.take(2) == parentRegion.code)
+    // A monument can also pass that check (its id's own prefix matches this
+    // oblast) yet its *page* - which is what actually resolves it to a
+    // raion/hromada - names a place in a different oblast entirely (real
+    // case: WWII fortification points catalogued under Kyiv-city-style ids
+    // but listed on a neighboring Kyiv-oblast raion's page). KATOTTH codes
+    // carry their oblast's 2-digit prefix at every level, so comparing the
+    // resolved division's own code catches this; an unresolved id (`None`)
+    // is left alone here; it still lands in the oblast-level Unresolved row.
+    val (oblastMonumentIds, badIdsByResolution) = byIdPrefix.partition { id =>
+      katotthResolution.get(id).forall(_.code.take(2) == parentRegion.code)
+    }
+    RegionalCommunityBreakdown.render(
+      parentRegion.code,
+      oblastMonumentIds,
+      badIdsByPrefix,
+      badIdsByResolution,
+      katotthResolution,
+      pageById,
+      monumentDb,
+      stat.totalImageDb
+    )
   }
 
   def table: Table = monumentsPicturedTable(stat.totalImageDb, monumentDb)
@@ -138,7 +200,8 @@ class MonumentsPicturedByRegion(
         stat,
         false,
         parentRegion.byMonumentId(regionId),
-        gallery
+        gallery,
+        Some(katotthResolutionDetailed)
       )
       child.updateWiki(bot)
     }

@@ -25,14 +25,9 @@ case class Koatuu2Katotth(
 
 object KatotthMonumentListCreator {
 
-  val UkraineKatotth: Country = new Country(
-    "UA",
-    "Ukraine",
-    Seq("uk"),
-    Katotth.regions(() => Some(UkraineKatotth))
-  )
+  val UkraineKatotth: Country = KatotthResolver.country
   val regionsKatotth = UkraineKatotth.regions
-  val katotthMap = UkraineKatotth.mapByCode
+  val katotthMap = KatotthResolver.katotthMap
 
   val UkraineKoatuu: Country = new Country(
     "UA",
@@ -189,16 +184,7 @@ object KatotthMonumentListCreator {
 
     monumentDB.monuments.map { m =>
       val koatuuOpt = placeByMonumentId.get(m.id)
-      val katotthOpt = koatuuOpt.flatMap { koatuu =>
-        val paddedKoatuu = koatuu.padTo(10, "0").mkString
-        val candidates =
-          Katotth.toKatotth.getOrElse(paddedKoatuu, Nil).flatMap(katotthMap.get)
-        if (candidates.nonEmpty) {
-          Some(candidates.maxBy(_.level))
-        } else {
-          None
-        }
-      }
+      val katotthOpt = koatuuOpt.flatMap(KatotthResolver.katotthFor)
 
       Koatuu2Katotth(koatuuOpt, katotthOpt, List(m.id))
     }
