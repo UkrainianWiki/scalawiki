@@ -112,10 +112,22 @@ object KatotthResolver {
       r.regionType.exists(rt => Set("P", "B").contains(rt.code)) && r.name.equalsIgnoreCase(raionStem)
     )
 
+  // Hromada nodes under a division, keyed by its code. `allSubregions` rebuilds
+  // the whole subtree (down to every settlement) on each call, so without this
+  // each resolved page re-walked its entire oblast.
+  private val hromadasUnderCache =
+    scala.collection.concurrent.TrieMap.empty[String, Seq[AdmDivision]]
+
+  private def hromadasUnder(division: AdmDivision): Seq[AdmDivision] =
+    hromadasUnderCache.getOrElseUpdate(
+      division.code,
+      division.allSubregions.filter(_.regionType.exists(_.code == "H"))
+    )
+
   private def hromadaCandidates(stem: String, within: Seq[AdmDivision]): Seq[AdmDivision] =
     within
-      .flatMap(_.allSubregions)
-      .filter(a => a.regionType.exists(_.code == "H") && a.name.equalsIgnoreCase(stem))
+      .flatMap(hromadasUnder)
+      .filter(_.name.equalsIgnoreCase(stem))
       .distinct
 
   /** The regionType code of a hromada's administrative-seat settlement.
@@ -240,9 +252,12 @@ object KatotthResolver {
     */
   def resolveDetailed(monumentDb: MonumentDB): Map[String, Resolution] = {
     val placeByMonumentId = monumentDb.placeByMonumentId
+    // Many monuments share a list page; resolve each distinct page once.
+    val fromPageByPage: Map[String, Option[AdmDivision]] =
+      monumentDb.monuments.iterator.map(_.page).distinct.map(p => p -> resolveFromPage(p)).toMap
     monumentDb.monuments.flatMap { m =>
       lazy val fromMapping = placeByMonumentId.get(m.id).flatMap(katotthFor)
-      val resolved = resolveFromPage(m.page) match {
+      val resolved = fromPageByPage(m.page) match {
         case Some(raion) if isRaionLevel(raion) =>
           fromMapping
             .filter(adm => raionAncestor(adm).exists(_.code == raion.code))

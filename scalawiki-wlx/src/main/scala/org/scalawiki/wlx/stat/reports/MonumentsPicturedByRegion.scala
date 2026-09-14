@@ -39,9 +39,11 @@ class MonumentsPicturedByRegion(
   val bot: MwBot = MwBot.fromHost(MwBot.commons)
   val name: String = pageName(parentRegion.name)
 
-  val currentYearPageIds: Set[Long] =
+  // lazy: per-oblast child reports only render `communityBreakdown`, which
+  // needs neither, so they skip a full pass over all images each.
+  lazy val currentYearPageIds: Set[Long] =
     stat.currentYearImageDb.images.flatMap(_.pageId).toSet
-  val oldImagesMonumentIds: Set[String] = stat.totalImageDb.images
+  lazy val oldImagesMonumentIds: Set[String] = stat.totalImageDb.images
     .filter(image => !currentYearPageIds.contains(image.pageId.get))
     .flatMap(_.monumentIds)
     .toSet

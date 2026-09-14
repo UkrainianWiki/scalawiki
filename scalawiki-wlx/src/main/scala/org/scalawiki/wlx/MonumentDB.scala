@@ -64,7 +64,7 @@ class MonumentDB(
 
   def withImages: Seq[Monument] = monuments.filter(_.photo.isDefined)
 
-  def picturedIds: Set[String] = withImages.map(_.id).toSet
+  lazy val picturedIds: Set[String] = withImages.map(_.id).toSet
 
   def picturedInRegion(regionId: String): Set[String] =
     byRegion(regionId).map(_.id).toSet intersect picturedIds
@@ -130,20 +130,28 @@ class MonumentDB(
     }
   }
 
-  lazy val placeByMonumentId: Map[String, String] = (for (
+  lazy val placeByMonumentId: Map[String, String] = {
+    // byIdAndName walks the region's whole place tree per call; many monuments
+    // share a (region, city, type), so look each distinct combination up once.
+    val candidatesCache = scala.collection.mutable.HashMap.empty[(String, String, Option[String]), Seq[AdmDivision]]
+    (for (
     id <- ids;
     monument <- byId(id)
   )
     yield {
       val regionId = id.split("-").take(2).mkString("-")
       val city = monument.city.getOrElse("")
-      val candidates = country.byIdAndName(regionId, city, monument.cityType)
+      val candidates = candidatesCache.getOrElseUpdate(
+        (regionId, city, monument.cityType),
+        country.byIdAndName(regionId, city, monument.cityType)
+      )
       if (candidates.size == 1) {
         Some(id -> candidates.head.code)
       } else {
         PerPlaceStat.fallbackMap.get(id).map(id -> _)
       }
     }).flatten.toMap
+  }
 
 }
 

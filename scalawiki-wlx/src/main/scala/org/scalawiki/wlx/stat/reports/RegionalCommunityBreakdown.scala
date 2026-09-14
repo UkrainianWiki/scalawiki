@@ -33,8 +33,10 @@ object RegionalCommunityBreakdown {
       totalImageDb: ImageDB
   ): (Int, Int, Int) = {
     val inLists = monumentIds.size
+    // Called for every row of every oblast page: test membership per id rather
+    // than building a union of the database-wide id sets each time.
     val pictured =
-      (monumentIds intersect (totalImageDb.ids ++ monumentDb.picturedIds)).size
+      monumentIds.count(id => totalImageDb.containsId(id) || monumentDb.picturedIds.contains(id))
     val percentage = if (inLists != 0) 100 * pictured / inLists else 0
     (inLists, pictured, percentage)
   }

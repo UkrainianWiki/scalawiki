@@ -59,10 +59,14 @@ trait AdmDivision {
     byName(name, 0, Int.MaxValue)
   }
 
-  def byName(name: String, level: Int, max: Int): Seq[AdmDivision] = {
-    Seq(this).filter(_.name.toLowerCase == name.toLowerCase) ++
+  def byName(name: String, level: Int, max: Int): Seq[AdmDivision] =
+    byLowerName(name.toLowerCase, level, max)
+
+  // The searched name is lowercased once up front, not again at every node.
+  private def byLowerName(lowerName: String, level: Int, max: Int): Seq[AdmDivision] = {
+    Seq(this).filter(_.name.toLowerCase == lowerName) ++
       (if (level < max) {
-         regions.flatMap(_.byName(name, level + 1, max))
+         regions.flatMap(_.byLowerName(lowerName, level + 1, max))
        } else Nil)
   }
 
