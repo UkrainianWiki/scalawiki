@@ -219,10 +219,16 @@ object Statistics {
     // Track every wiki edit/upload so failures are logged and `main` can wait
     // for them all before shutting the process down.
     WriteWatcher.enable(MwBot.system.log)
+    // Record heap/GC use so the final summary shows how much memory the run needed.
+    MemoryStats.install()
 
     var exitCode = 0
     try {
       val cfg = StatParams.parse(args)
+      if (cfg.dryRun) {
+        org.scalawiki.util.DryRun.enable(cfg.dryRunDir)
+        Console.err.println(s"Dry run: nothing will be published; edit text is saved under ${cfg.dryRunDir}")
+      }
       val contest = Contest.byCampaign(cfg.campaign, cfg.years.last, cfg.rateConfig)
 
       if (cfg.exportCsv.isDefined) {
@@ -257,6 +263,7 @@ object Statistics {
         e.printStackTrace()
         exitCode = 1
     } finally {
+      MemoryStats.report()
       // Stop the Pekko ActorSystem so its non-daemon threads no longer keep the
       // JVM alive; without this the process hangs after all reports are done.
       try Await.result(MwBot.system.terminate(), 30.seconds)

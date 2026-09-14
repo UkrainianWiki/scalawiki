@@ -95,6 +95,13 @@ class ImageCsvImporterSpec extends Specification {
       imported.head.specialNominations must_== Set("WLM2022-UA-interior")
     }
 
+    "drop rows failing the keep filter" in {
+      val dir = Files.createTempDirectory("image-csv-keep-spec")
+      ImageCsvExporter.export(new ImageDB(prevContest, Seq(fullImage, minimalImage), None), prevContest.campaign, isCurrent = false, dir.toString)
+      val path = ImageCsvExporter.filename(prevContest.campaign, prevContest.year, isCurrent = false, dir.toString)
+      ImageCsvImporter.imagesFromCsv(path, _.pageId.isDefined) must_== Seq(fullImage)
+    }
+
     "return an empty sequence when the file does not exist" in {
       ImageCsvImporter.imagesFromCsv("does-not-exist-anywhere.csv") must beEmpty
     }
@@ -120,6 +127,30 @@ class ImageCsvImporterSpec extends Specification {
       ImageCsvExporter.exportTotal(imageDb, prevContest.campaign, dir.toString)
       val path = ImageCsvExporter.totalFilename(prevContest.campaign, dir.toString)
       ImageCsvImporter.imagesFromCsv(path) must_== Seq(fullImage)
+    }
+
+    "leave out Commons copies of per-year images, keeping other rows and uk.wiki rows with the same page id" in {
+      val dir = Files.createTempDirectory("image-csv-total-extras-spec")
+      val extra = minimalImage.copy(pageId = Some(7L))
+      val wikiSameId = minimalImage.copy(
+        title = "File:Wiki.jpg",
+        pageId = fullImage.pageId,
+        pageUrl = Some("https://uk.wikipedia.org/wiki/File:Wiki.jpg")
+      )
+      val total = new ImageDB(prevContest, Seq(fullImage, extra, wikiSameId), None)
+      val perYear = Seq(new ImageDB(prevContest, Seq(fullImage), None))
+      ImageCsvExporter.exportTotal(total, prevContest.campaign, dir.toString, perYear)
+      val path = ImageCsvExporter.totalFilename(prevContest.campaign, dir.toString)
+      ImageCsvImporter.imagesFromCsv(path) must_== Seq(extra, wikiSameId)
+    }
+
+    "write a header-only file when every image is in a per-year CSV" in {
+      val dir = Files.createTempDirectory("image-csv-total-empty-spec")
+      val db = new ImageDB(prevContest, Seq(fullImage), None)
+      ImageCsvExporter.exportTotal(db, prevContest.campaign, dir.toString, perYear = Seq(db))
+      val path = ImageCsvExporter.totalFilename(prevContest.campaign, dir.toString)
+      new java.io.File(path).exists must beTrue
+      ImageCsvImporter.imagesFromCsv(path) must beEmpty
     }
   }
 }

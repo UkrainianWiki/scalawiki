@@ -180,4 +180,20 @@ class StatParamsSpec extends Specification {
     }
   }
 
+  "--dry-run" should {
+
+    "be off by default, with the default output dir" in {
+      val cfg = StatParams.parse(Seq("--campaign", "WLM-UA"))
+      cfg.dryRun must beFalse
+      cfg.dryRunDir === "dry-run"
+    }
+
+    "be enabled by --dry-run, with --dry-run-dir overriding the dir" in {
+      StatParams.parse(Seq("--campaign", "WLM-UA", "--dry-run")).dryRun must beTrue
+      val cfg = StatParams.parse(Seq("--campaign", "WLM-UA", "--dry-run", "--dry-run-dir", "out"))
+      cfg.dryRun must beTrue
+      cfg.dryRunDir === "out"
+    }
+  }
+
 }

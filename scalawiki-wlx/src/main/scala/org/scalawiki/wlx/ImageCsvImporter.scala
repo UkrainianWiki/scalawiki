@@ -58,13 +58,18 @@ object ImageCsvImporter {
     )
   }
 
-  def imagesFromCsv(path: String): Seq[Image] = {
+  /** Images from an image CSV, or empty if the file doesn't exist. Rows whose
+    * image fails `keep` are dropped as they are read, never held.
+    */
+  def imagesFromCsv(path: String, keep: Image => Boolean = _ => true): Seq[Image] = {
     val file = new File(path)
     if (!file.exists()) return Seq.empty
 
     val reader = CSVReader.open(file, "UTF-8")
     try {
-      reader.allWithHeaders().map(rowToImage)
+      // Row by row: `allWithHeaders()` would hold every row's string map in
+      // memory at once, on top of the images built from them.
+      reader.iteratorWithHeaders.map(rowToImage).filter(keep).toVector
     } finally {
       reader.close()
     }

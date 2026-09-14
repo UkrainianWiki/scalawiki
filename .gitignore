@@ -80,6 +80,9 @@ native
 # Runtime logs (see scalawiki-core/src/main/resources/logback.xml)
 /logs/
 
+# WLX stats --dry-run output (unpublished report text, see util/DryRun.scala)
+/dry-run/
+
 # CachedBot filesystem request cache (see cache/CachedBot.scala) -- also lands
 # under a module dir (scalawiki-wlx/) when a forked test builds one
 http-cache/

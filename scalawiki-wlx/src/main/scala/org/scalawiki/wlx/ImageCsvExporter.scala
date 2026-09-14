@@ -64,16 +64,39 @@ object ImageCsvExporter {
   ): Unit =
     exportTo(imageDb, filename(campaign, imageDb.contest.year, isCurrent, outputDir))
 
+  /** A row hosted on a project wiki (uk.wikipedia) rather than Commons: its
+    * stored page URL points elsewhere. Such rows live in a different page-id
+    * space, so a Commons page id matching theirs says nothing about them. */
+  def isProjectWikiHosted(image: Image): Boolean =
+    image.pageUrl.exists(url => !url.contains("commons.wikimedia.org"))
+
+  def perYearPageIds(dbsByYear: Seq[ImageDB]): Set[Long] =
+    dbsByYear.iterator.flatMap(_.images).flatMap(_.pageId).toSet
+
+  /** Whether `image` is the Commons copy of an image with one of `perYearIds`. */
+  def inPerYear(perYearIds: Set[Long])(image: Image): Boolean =
+    !isProjectWikiHosted(image) && image.pageId.exists(perYearIds.contains)
+
+  /** Write the all-images CSV. Images in `perYear` are left out: they have
+    * their own per-year CSVs, and the all-time DB is read back as those plus
+    * this file's rows, so repeating them would store nearly every image twice.
+    * Written even when that leaves no rows, so the file still counts as cached.
+    */
   def exportTotal(
       imageDb: ImageDB,
       campaign: String,
-      outputDir: String
-  ): Unit =
-    exportTo(imageDb, totalFilename(campaign, outputDir))
+      outputDir: String,
+      perYear: Seq[ImageDB] = Nil
+  ): Unit = {
+    val perYearIds = perYearPageIds(perYear)
+    exportTo(imageDb.images.filterNot(inPerYear(perYearIds)).toSeq, totalFilename(campaign, outputDir), writeEmpty = true)
+  }
 
-  private def exportTo(imageDb: ImageDB, path: String): Unit = {
-    val images = imageDb.images.toSeq
-    if (images.isEmpty) return
+  private def exportTo(imageDb: ImageDB, path: String): Unit =
+    exportTo(imageDb.images.toSeq, path, writeEmpty = false)
+
+  private def exportTo(images: Seq[Image], path: String, writeEmpty: Boolean): Unit = {
+    if (images.isEmpty && !writeEmpty) return
 
     val file = new File(path)
     Option(file.getParentFile).foreach { dir =>

@@ -42,7 +42,9 @@ case class StatConfig(
     csvCacheResync: Boolean = false,
     monumentCacheRefresh: Boolean = false,
     verbose: Boolean = false,
-    progress: Boolean = true
+    progress: Boolean = true,
+    dryRun: Boolean = false,
+    dryRunDir: String = "dry-run"
 ) {
 
   /** Directory holding the automatic image CSV cache. An explicit
@@ -153,6 +155,10 @@ class StatParams(arguments: Seq[String]) extends ScallopConf(arguments) {
     opt[Boolean](name = "verbose", descr = "Verbose logging: echo per-request INFO detail to the console and record DEBUG detail in logs/scalawiki.log (default: console WARN+, file INFO).")
   val noProgress =
     opt[Boolean](name = "no-progress", descr = "Disable the live console progress display (progress is still written to logs/scalawiki.log).")
+  val dryRun =
+    opt[Boolean](name = "dry-run", descr = "Build every report but publish nothing: each page edit's text is saved to <dry-run-dir>/<host>/<title>.wiki instead, uploads are skipped. Wiki reads and local caches work as usual.")
+  val dryRunDir =
+    opt[String](name = "dry-run-dir", descr = "Directory for --dry-run output (default: dry-run).")
   verify()
 
 }
@@ -205,7 +211,9 @@ object StatParams {
       csvCacheResync = conf.csvCacheResync.getOrElse(false),
       monumentCacheRefresh = conf.monumentCacheRefresh.getOrElse(false),
       verbose = conf.verbose.getOrElse(false),
-      progress = !conf.noProgress.getOrElse(false)
+      progress = !conf.noProgress.getOrElse(false),
+      dryRun = conf.dryRun.getOrElse(false),
+      dryRunDir = conf.dryRunDir.getOrElse("dry-run")
     )
   }
 }

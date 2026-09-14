@@ -1,6 +1,6 @@
 package org.scalawiki.wlx.stat.reports
 
-import org.scalawiki.util.WriteWatcher
+import org.scalawiki.util.{DryRun, WriteWatcher}
 import org.scalawiki.wlx.stat.progress.Progress
 import org.scalawiki.wlx.stat.{ContestStat, StatConfig}
 
@@ -28,7 +28,10 @@ class ReportRunner(stat: ContestStat, config: StatConfig) {
     // Publishing is the long pole on a cached run: dozens of throttled edits
     // draining a few at a time. Drive a bar off WriteWatcher's counters.
     val writeFailures =
-      Progress.bar("Publishing edits", WriteWatcher.submittedCount) { task =>
+      Progress.bar(
+        if (DryRun.isEnabled) "Saving dry-run output" else "Publishing edits",
+        WriteWatcher.submittedCount
+      ) { task =>
         WriteWatcher.awaitQuiescence(onProgress = (done, submitted) => {
           task.total(submitted)
           task.stepTo(done)
@@ -48,6 +51,11 @@ class ReportRunner(stat: ContestStat, config: StatConfig) {
         )
         writeFailures.foreach { case (desc, e) => Progress.note(s"  - $desc: $e") }
       }
+    } else if (DryRun.isEnabled) {
+      Progress.note(
+        s"\n=== Dry run: OK (${DryRun.skippedCount} wiki writes not published; " +
+          s"edit text saved under ${DryRun.outputDir.getOrElse("")}) ==="
+      )
     } else {
       Progress.note(
         s"\n=== Publish summary: OK (${WriteWatcher.completedCount} wiki writes) ==="

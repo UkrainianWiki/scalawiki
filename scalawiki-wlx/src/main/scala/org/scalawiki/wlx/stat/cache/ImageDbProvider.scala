@@ -23,7 +23,8 @@ import scala.util.Try
   *
   * A second-tier cache above the `http-cache/` request cache: once an
   * `ImageDB` has been built it is serialized to `<csvDir>/<campaign>-<year>-images.csv`
-  * (and `<campaign>-all-images.csv` for the all-time DB). Later runs read those
+  * (and `<campaign>-all-images.csv` with the all-time DB's images that are in
+  * no per-year CSV - the all-time DB is those plus the per-year images). Later runs read those
   * CSVs directly and skip the sequential JSON parse of the raw API responses.
   *
   * - `--images-from-csv <dir>` keeps its strict semantics (files must exist);
@@ -144,18 +145,36 @@ class ImageDbProvider(
     if (!wantTotal) Future.successful(currentYearImages)
     else
       existingTotalCsvPath match {
-        case Some(path) if csvResync =>
-          resyncTotalCsv(monumentDb, dbsByYear, path)
-        case Some(path) =>
-          Future.successful(
-            new ImageDB(contest, ImageCsvImporter.imagesFromCsv(path), monumentDb, config.minMpx)
-          )
-        case None =>
-          imagesByTemplate(monumentDb, dbsByYear, totalPageRevs).map { db =>
-            writeTotalCsvCache(db)
-            db
-          }
+        case Some(path) if csvResync => resyncTotalCsv(monumentDb, dbsByYear, path)
+        case Some(path)              => Future.successful(totalFromCsv(monumentDb, dbsByYear, path))
+        case None                    => imagesByTemplate(monumentDb, dbsByYear, totalPageRevs)
       }
+  }
+
+  /** The all-time DB from the all-images CSV: the per-year images (the same
+    * objects, not copies) plus the CSV's other rows. A CSV written before it
+    * stopped repeating per-year images still reads correctly - those rows are
+    * skipped, the per-year copy being the more recently synced one - and is
+    * rewritten without them so later runs don't parse them again. */
+  private def totalFromCsv(monumentDb: Some[MonumentDB], dbsByYear: Seq[ImageDB], path: String): ImageDB = {
+    val perYearIds = ImageCsvExporter.perYearPageIds(dbsByYear)
+    var skipped = 0
+    val extras = ImageCsvImporter.imagesFromCsv(
+      path,
+      image => {
+        val duplicate = ImageCsvExporter.inPerYear(perYearIds)(image)
+        if (duplicate) skipped += 1
+        !duplicate
+      }
+    )
+    if (skipped > 0) {
+      logger.info(
+        s"[csv-cache] all-images: skipped $skipped rows already in the per-year CSVs; " +
+          s"rewriting it with the other ${extras.size}"
+      )
+      writeTotalCsvCache(new ImageDB(contest, extras, monumentDb))
+    }
+    new ImageDB(contest, dbsByYear.flatMap(_.images) ++ extras, monumentDb, config.minMpx)
   }
 
   private def pastYearImages(monumentDb: Some[MonumentDB])(yearContest: Contest): Future[ImageDB] = {
@@ -335,30 +354,29 @@ class ImageDbProvider(
     }.toVector
   }
 
-  /** A cached row is hosted on a project wiki (not Commons) when its stored
-    * `page_url` points somewhere other than commons.wikimedia.org. Those rows are
-    * outside the Commons template sweep's page-id space, so the sweep must never
-    * be allowed to treat them as deleted. */
-  private def isProjectWikiHosted(image: Image): Boolean =
-    image.pageUrl.exists(url => !url.contains("commons.wikimedia.org"))
-
-  /** Resync the all-images CSV: a live revid sweep of the Commons contest
-    * template diffed against the Commons-hosted cached rows, plus a fresh fetch
-    * of the uk.wikipedia-hosted images (small set, different page-id space, so
-    * always refetched rather than diffed), plus the per-year images (kept in sync
-    * with the full-rebuild path, which unions them too). */
+  /** Resync the all-images CSV's rows (the images in no per-year CSV): a live
+    * revid sweep of the Commons contest template, minus the per-year page ids,
+    * diffed against the Commons-hosted cached rows, plus a fresh fetch of the
+    * uk.wikipedia-hosted images (small set, different page-id space, so always
+    * refetched rather than diffed). Cached rows are Commons-hosted unless their
+    * `page_url` says otherwise; uk.wiki rows are never treated as deleted by the
+    * Commons sweep. The per-year images, synced through their own CSVs, are
+    * joined in front, as on the full-rebuild path. */
   private def resyncTotalCsv(
       monumentDb: Option[MonumentDB],
       dbsByYear: Seq[ImageDB],
       path: String
   ): Future[ImageDB] = {
-    val cached = ImageCsvImporter.imagesFromCsv(path)
-    val (cachedWiki, cachedCommons) = cached.partition(isProjectWikiHosted)
+    val perYearIds = ImageCsvExporter.perYearPageIds(dbsByYear)
+    // skips the per-year copies an older, full all-images CSV still repeats
+    val cached = ImageCsvImporter.imagesFromCsv(path, image => !ImageCsvExporter.inPerYear(perYearIds)(image))
+    val (cachedWiki, cachedCommons) = cached.partition(ImageCsvExporter.isProjectWikiHosted)
     val writtenAt = cacheWrittenAt(path)
     val query = imageQuery.getOrElse(liveImageQuery)
-    val perYearImages = dbsByYear.flatMap(_.images)
     for {
-      commonsRevs <- query.imageIdsWithTemplate(contest)
+      templateRevs <- query.imageIdsWithTemplate(contest)
+      // per-year files are synced via their own CSVs; diffing them here would refetch them all
+      commonsRevs = templateRevs.filterNot(r => perYearIds.contains(r.pageId))
       freshWiki <- imageQueryWiki.map(_.imagesWithTemplate(contest)).getOrElse(Future.successful(Nil))
       // an empty uk.wiki refetch when one was configured means the fetch failed;
       // fall back to the cached wiki rows and, since some of those may sit in
@@ -374,7 +392,7 @@ class ImageDbProvider(
           )
           cachedWiki
         }
-      db <- syncImageDb(
+      extras <- syncImageDb(
         contest,
         monumentDb,
         cachedCommons,
@@ -382,11 +400,11 @@ class ImageDbProvider(
         commonsRevs,
         _ => writtenAt,
         ids => query.imagesWithTemplateByIds(contest, ids),
-        extraImages = wiki ++ perYearImages,
+        extraImages = wiki,
         sweepComplete = wikiFetchTrustworthy &&
           sweepLooksComplete(commonsRevs.size, cachedCommons.count(_.pageId.isDefined), None)
       )
-    } yield db
+    } yield new ImageDB(contest, dbsByYear.flatMap(_.images) ++ extras.images, monumentDb, config.minMpx)
   }
 
   private def fetchImageDb(
@@ -423,7 +441,11 @@ class ImageDbProvider(
       for {
         commons <- totalImageQuery.imagesWithTemplateByIds(contest, missingPageIds)
         wiki <- imageQueryWiki.map(_.imagesWithTemplate(contest)).getOrElse(Future.successful(Nil))
-      } yield new ImageDB(contest, dbsByYear.flatMap(_.images) ++ commons ++ wiki, monumentDb)
+      } yield {
+        // the per-year images have their own CSVs; cache only the rest
+        writeTotalCsvCache(new ImageDB(contest, (commons ++ wiki).toSeq, monumentDb))
+        new ImageDB(contest, dbsByYear.flatMap(_.images) ++ commons ++ wiki, monumentDb)
+      }
     }
   }
 

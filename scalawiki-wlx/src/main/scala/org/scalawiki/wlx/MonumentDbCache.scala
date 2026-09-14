@@ -127,13 +127,11 @@ object MonumentDbCache {
     val file = new File(path)
     if (!file.exists()) return Nil
 
-    val reader = CSVReader.open(file, "UTF-8")
-    val rows =
-      try reader.allWithHeaders()
-      finally reader.close()
-
     val byPage = scala.collection.mutable.LinkedHashMap.empty[String, MonumentListPage]
-    rows.foreach { row =>
+    val reader = CSVReader.open(file, "UTF-8")
+    // Row by row: `allWithHeaders()` would hold every row's string map in
+    // memory at once, on top of the monuments built from them.
+    try reader.iteratorWithHeaders.foreach { row =>
       val title = row.getOrElse("source_page", "")
       val existing = byPage.get(title)
       val monument = rowToMonument(row, listConfig)
@@ -149,6 +147,7 @@ object MonumentDbCache {
       }
       byPage.update(title, page)
     }
+    finally reader.close()
     byPage.values.toVector
   }
 }

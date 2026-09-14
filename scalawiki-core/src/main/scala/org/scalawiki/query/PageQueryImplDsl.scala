@@ -221,9 +221,21 @@ class PageQueryImplDsl(
     // Edit conflicts are `benign` here: FailFast surfaces them on purpose so the
     // caller (PageUpdater) can re-read and retry, so they must not be counted as
     // dropped writes.
-    WriteWatcher.submit(s"edit ${bot.host} / $page", isConflict)(() =>
-      policy(() => performEdit())
-    )
+    if (org.scalawiki.util.DryRun.isEnabled) {
+      // Still routed through WriteWatcher so the run's write count and progress
+      // stay meaningful; nothing is sent (not even a token request).
+      WriteWatcher.submit(s"dry-run edit ${bot.host} / $page")(() =>
+        Future {
+          val title = query.fold(ids => s"pageid-${ids.head}", _.head)
+          val file = org.scalawiki.util.DryRun.saveEdit(bot.host, title, text)
+          bot.log.info(s"Dry run: not publishing ${bot.host} edit page: $page, saved to $file")
+          "Success"
+        }
+      )
+    } else
+      WriteWatcher.submit(s"edit ${bot.host} / $page", isConflict)(() =>
+        policy(() => performEdit())
+      )
   }
 
   override def upload(
@@ -233,6 +245,15 @@ class PageQueryImplDsl(
       ignoreWarnings: Boolean = false
   ): Future[String] = {
     val page = query.right.toOption.fold(filename)(_.head)
+    if (org.scalawiki.util.DryRun.isEnabled) {
+      return WriteWatcher.submit(s"dry-run upload ${bot.host} / $page")(() =>
+        Future.successful {
+          org.scalawiki.util.DryRun.skipUpload()
+          bot.log.info(s"Dry run: not uploading $filename to ${bot.host} as $page")
+          "Success"
+        }
+      )(scala.concurrent.ExecutionContext.Implicits.global)
+    }
     val token = bot.token
     val fileContents = Files.readAllBytes(Paths.get(filename))
     val params = Map(

@@ -314,6 +314,68 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
 
   "all-images CSV" should {
 
+    def totalCsv(dir: Path): String = ImageCsvExporter.totalFilename(campaign, dir.toString)
+
+    "be read as the per-year images plus its other rows; an old CSV repeating per-year rows is rewritten without them" in {
+      val dir = cacheDir()
+      val perYear = img("File:A.jpg", 1L, revId = Some(10L))
+      ImageCsvExporter.export(new ImageDB(contest, Seq(perYear), None), campaign, isCurrent = false, dir.toString)
+      // old format: the all-images CSV also holds a (staler) copy of the per-year image
+      val staleCopy = perYear.copy(monumentIds = Seq("999"), revId = Some(9L))
+      ImageCsvExporter.exportTotal(new ImageDB(contest, Seq(staleCopy, img("File:X.jpg", 5L, revId = Some(50L))), None),
+        campaign, dir.toString)
+
+      val q = newImageQuery()
+      q.imageIdsFromCategory(contest) returns Future.successful(Seq(rev(1L, 10L)))
+
+      val data = stats(dir, q).gatherData(total = true).await
+
+      data.totalImageDb.images.map(_.title).toSeq must_== Seq("File:A.jpg", "File:X.jpg")
+      // the per-year copy wins, and it is the same object, not a second copy
+      data.totalImageDb.images.head.monumentIds must_== Seq("123")
+      data.totalImageDb.images.head must beTheSameAs(data.currentYearImageDb.images.head)
+      ImageCsvImporter.imagesFromCsv(totalCsv(dir)).map(_.title) must_== Seq("File:X.jpg")
+      there was no(q).imagesWithTemplateByIds(any[Contest], any[Set[Long]])
+    }
+
+    "on a full fetch, cache only the images not in the per-year CSVs" in {
+      val dir = cacheDir()
+      ImageCsvExporter.export(new ImageDB(contest, Seq(img("File:A.jpg", 1L, revId = Some(10L))), None), campaign,
+        isCurrent = false, dir.toString)
+
+      val q = newImageQuery()
+      q.imageIdsFromCategory(contest) returns Future.successful(Seq(rev(1L, 10L)))
+      q.imageIdsWithTemplate(contest) returns Future.successful(Seq(rev(1L, 10L), rev(5L, 50L)))
+      q.imagesWithTemplateByIds(contest, Set(5L)) returns
+        Future.successful(Seq(img("File:X.jpg", 5L, revId = Some(50L))))
+
+      val data = stats(dir, q).gatherData(total = true).await
+
+      data.totalImageDb.images.map(_.title).toSeq must_== Seq("File:A.jpg", "File:X.jpg")
+      ImageCsvImporter.imagesFromCsv(totalCsv(dir)).map(_.title) must_== Seq("File:X.jpg")
+    }
+
+    "with --csv-cache-resync: diff only the rows not in the per-year CSVs" in {
+      val dir = cacheDir()
+      val perYear = img("File:A.jpg", 1L, revId = Some(10L))
+      ImageCsvExporter.export(new ImageDB(contest, Seq(perYear), None), campaign, isCurrent = false, dir.toString)
+      // old format, with a copy of file 1 at an older revision than the live one
+      ImageCsvExporter.exportTotal(
+        new ImageDB(contest, Seq(perYear.copy(revId = Some(9L)), img("File:X.jpg", 5L, revId = Some(50L))), None),
+        campaign, dir.toString)
+
+      val q = newImageQuery()
+      q.imageIdsFromCategory(contest) returns Future.successful(Seq(rev(1L, 10L)))
+      q.imageIdsWithTemplate(contest) returns Future.successful(Seq(rev(1L, 10L), rev(5L, 50L)))
+
+      val data = stats(dir, q, csvCacheResync = true).gatherData(total = true).await
+
+      data.totalImageDb.images.map(_.title).toSeq must_== Seq("File:A.jpg", "File:X.jpg")
+      // file 1 is synced by the per-year CSV, not refetched for the all-images one
+      there was no(q).imagesWithTemplateByIds(any[Contest], any[Set[Long]])
+      ImageCsvImporter.imagesFromCsv(totalCsv(dir)).map(_.title) must_== Seq("File:X.jpg")
+    }
+
     "with --csv-cache-resync: refetch changed rows and keep uk.wiki images" in {
       val dir = cacheDir()
       val total = Seq(

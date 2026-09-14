@@ -64,6 +64,8 @@ once it rolls). Nothing to configure — it's created on first run.
 |----------------|-----------------------------------------------------------------------|
 | `--verbose`    | echo the per-request INFO logging to the console (it always goes to the file) and record extra DEBUG detail in `logs/scalawiki.log` |
 | `--no-progress`| turn off the live bar; progress is still written to `logs/scalawiki.log` as periodic lines. Useful when piping output. |
+| `--dry-run`    | build every report but publish nothing: each page edit's text is saved to `dry-run/<host>/<title>.wiki` instead (`/`, `:` etc. in titles become `_`) and uploads are skipped. Wiki reads and the local caches work as usual. |
+| `--dry-run-dir DIR` | save `--dry-run` output under `DIR` instead of `dry-run` |
 
 Report text and CSVs are written to **stdout**; the progress bar, the phase
 lines and the `=== Publish summary ===` all go to **stderr** — so
@@ -82,7 +84,7 @@ lower-level `http-cache/` request cache):
 ```
 csv-cache/wlm-ua-2015-images.csv   # one per past contest year
 csv-cache/wlm-ua-2026-images.csv   # current year (incrementally synced)
-csv-cache/wlm-ua-all-images.csv    # all-time DB, when a year range / rating run needs it
+csv-cache/wlm-ua-all-images.csv    # all-time DB's images in no per-year CSV (the all-time DB = per-year images + these), when a year range / rating run needs it
 ```
 
 * **First run** builds them from the wiki queries (whose raw responses land in
@@ -146,6 +148,27 @@ csv-cache/wlm-ua-monuments.csv     # every parsed monument + its source page's l
 | `JAVA_HOME` | JDK to use (must be 11+); otherwise `java` from `PATH`         |
 | `SW_JAR`    | explicit path to the fat jar (skips autodiscovery and build)  |
 | `JAVA_OPTS` | extra JVM options, e.g. `JAVA_OPTS="-Xmx6g"`                   |
+
+## Memory
+
+Every run ends with a line like
+
+```
+Memory: heap peak 2860 MB, max after GC 2587 MB, limit 4060 MB (committed 3588 MB); GC: 94 collections, 6.1 s, process peak RSS 3900 MB
+```
+
+* **heap peak** — highest heap use seen (just before a garbage collection).
+* **max after GC** — most memory still in use right after a collection: an upper
+  bound on what the run really needs. Size `-Xmx` from this plus headroom.
+* **limit / committed** — the heap cap and what the JVM actually reserved.
+* **process peak RSS** — whole-process peak (heap + JVM overhead, typically
+  +350–400 MB); Linux only.
+
+Set `-Xmx` explicitly on a server (`JAVA_OPTS="-Xmx3g"`): by default the JVM
+takes only ¼ of physical RAM, which on a small machine can be too little. The
+run scripts add `-XX:+UseStringDeduplication`; it only takes effect with the G1
+collector, which the JVM picks by default except on machines with fewer than 2
+CPUs or under ~1.8 GB of RAM — add `-XX:+UseG1GC` there.
 
 ## Exit behaviour and publishing
 

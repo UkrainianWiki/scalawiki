@@ -194,7 +194,7 @@ class ReporterRegistry(
             outputDir = dir
           )
         }
-        ImageCsvExporter.exportTotal(totalImageDb, stat.contest.campaign, outputDir = dir)
+        ImageCsvExporter.exportTotal(totalImageDb, stat.contest.campaign, outputDir = dir, perYear = stat.dbsByYear)
       }
     }
     stepErrors.toSeq
