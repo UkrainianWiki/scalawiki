@@ -83,6 +83,9 @@ native
 # WLX stats --dry-run output (unpublished report text, see util/DryRun.scala)
 /dry-run/
 
+# scripts/profiling/mem-profile.ps1 results (JFR recordings, GC logs, heap histograms)
+/profiling-out/
+
 # CachedBot filesystem request cache (see cache/CachedBot.scala) -- also lands
 # under a module dir (scalawiki-wlx/) when a forked test builds one
 http-cache/

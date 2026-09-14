@@ -170,6 +170,13 @@ run scripts add `-XX:+UseStringDeduplication`; it only takes effect with the G1
 collector, which the JVM picks by default except on machines with fewer than 2
 CPUs or under ~1.8 GB of RAM — add `-XX:+UseG1GC` there.
 
+To see where memory and time go in detail, `scripts/profiling/mem-profile.ps1`
+(Windows) runs a `--dry-run` under Java Flight Recorder and saves a GC log,
+class histograms and process memory samples to `profiling-out/`;
+`run-jdk-matrix.ps1` repeats it with and without string deduplication per JDK.
+The `.jsh` scripts there (run with `jshell`) break the image CSV cache down by
+field. Each script's header explains its options.
+
 ## Exit behaviour and publishing
 
 The stats engine now **waits for every wiki edit/upload to finish and then
