@@ -108,6 +108,28 @@ class RegionalCommunityBreakdownSpec extends Specification {
     }
   }
 
+  "RegionalCommunityBreakdown.renderRaion with two same-named hromadas" should {
+    val twinA: Region =
+      Region("01001030", "Громада В", regionType = hromadaType, parent = () => Some(raion))
+    val twinB: Region =
+      Region("01001040", "Громада В", regionType = hromadaType, parent = () => Some(raion))
+
+    val (text, _) = RegionalCommunityBreakdown.renderRaion(
+      raion,
+      Set("01-xxx-0001", "01-xxx-0002", "01-xxx-0003"),
+      Map("01-xxx-0001" -> twinA, "01-xxx-0002" -> twinA, "01-xxx-0003" -> twinB),
+      Map.empty,
+      monumentDb,
+      totalImageDb
+    )
+
+    "keep a separate row for each hromada" in {
+      text must contain(s"| ${twinA.fullName} || 2 || 1 || 50")
+      text must contain(s"| ${twinB.fullName} || 1 || 0 || 0")
+      text must contain("| Total || 3 || 1 || 33")
+    }
+  }
+
   "RegionalCommunityBreakdown.render with bad ids" should {
     "list a wrong-prefix id as Bad id and a wrong-oblast-resolution id as Wrong region, with an explanation" in {
       val text = RegionalCommunityBreakdown.render(

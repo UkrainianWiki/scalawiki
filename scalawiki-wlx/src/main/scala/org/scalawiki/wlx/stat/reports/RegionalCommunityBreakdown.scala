@@ -138,9 +138,12 @@ object RegionalCommunityBreakdown {
     val byHromada: Map[Option[AdmDivision], Set[String]] =
       raionMonumentIds.groupBy(id => resolved.get(id).flatMap(KatotthResolver.hromadaAncestor))
 
-    val hromadaRows = byHromada.collect { case (Some(hromada), ids) =>
-      hromada.fullName -> row(linkedName(hromada.fullName, ids, pageById), ids, monumentDb, totalImageDb)
-    }.toSeq.sortBy(_._1).map(_._2)
+    // Collect over a Seq, not the Map: two distinct hromadas can share a
+    // fullName within one raion (e.g. two "Миколаївська громада" in Сумський
+    // raion), and re-keying by name would silently drop one of them.
+    val hromadaRows = byHromada.toSeq.collect { case (Some(hromada), ids) =>
+      (hromada.fullName, hromada.code) -> row(linkedName(hromada.fullName, ids, pageById), ids, monumentDb, totalImageDb)
+    }.sortBy(_._1).map(_._2)
 
     val raionUnresolved = byHromada.getOrElse(None, Set.empty)
     val rows = hromadaRows ++

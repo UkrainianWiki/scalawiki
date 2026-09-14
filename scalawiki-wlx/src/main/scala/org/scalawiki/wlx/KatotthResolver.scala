@@ -22,9 +22,29 @@ object KatotthResolver {
   def katotthFor(koatuu: String): Option[AdmDivision] = {
     val paddedKoatuu = koatuu.padTo(10, "0").mkString
     val candidates =
-      Katotth.toKatotth.getOrElse(paddedKoatuu, Nil).flatMap(katotthMap.get)
+      Katotth.toKatotth.getOrElse(paddedKoatuu, Nil).flatMap(nodeForCode)
     if (candidates.nonEmpty) Some(candidates.maxBy(_.level)) else None
   }
+
+  // Hromada nodes keyed by the first 10 digits of their 17-digit KATOTTH code
+  // (oblast 2 + raion 2 + hromada 3 + settlement "000").
+  private lazy val hromadaByPrefix: Map[String, AdmDivision] =
+    katotthMap.values.toSeq
+      .filter(a => a.regionType.exists(_.code == "H") && a.code.length == 17)
+      .groupBy(_.code.take(10))
+      .collect { case (prefix, Seq(single)) => prefix -> single }
+
+  /** The KATOTTH node for a code from `katotth_koatuu.csv`, or - when the
+    * bundled codifier edition no longer lists it (settlements are dropped or
+    * renumbered between editions, while the KOATUU mapping is frozen) - its
+    * nearest surviving ancestor, derived from the code's own hierarchical
+    * digits: its hromada, else its raion.
+    */
+  private[wlx] def nodeForCode(code: String): Option[AdmDivision] =
+    katotthMap
+      .get(code)
+      .orElse(if (code.length == 17) hromadaByPrefix.get(code.take(7) + "000") else None)
+      .orElse(if (code.length == 17) katotthMap.get(code.take(5)) else None)
 
   private val hromadaSuffix = " громада"
   private val raionSuffix = " район"
@@ -143,7 +163,8 @@ object KatotthResolver {
     * the city district) itself - which is the most specific level available
     * for areas with no hromada level (Kyiv, Sevastopol, occupied Crimea, or
     * a raion not yet split into hromada lists) rather than leaving them
-    * unresolved. Scoped to at most the parsed oblast (never country-wide):
+    * unresolved (`resolveDetailed` may still refine such a raion to a
+    * hromada via the numeric mapping). Scoped to at most the parsed oblast (never country-wide):
     * an unscoped, purely name-based match anywhere in the country is more
     * often a coincidental same-named region in an unrelated oblast than the
     * intended one.
@@ -189,20 +210,35 @@ object KatotthResolver {
 
   /** Monument id -> current-day KATOTTH location, with the page that
     * produced it. Resolves primarily from each monument's own list-page
-    * title (already hromada-organized on-wiki for current lists), falling
-    * back to the numeric KOATUU->KATOTTH mapping (`katotthFor`) only when
-    * the page has no hromada segment, its name doesn't match, or a
-    * same-raion name collision can't be settled by seat type. Monuments
-    * unresolved by both are absent from the map.
+    * title (already hromada-organized on-wiki for current lists), using the
+    * numeric KOATUU->KATOTTH mapping (`katotthFor`):
+    *  - instead, when the page doesn't resolve at all (no recognizable
+    *    segments, an unmatched name, or a same-raion name collision that
+    *    seat type can't settle);
+    *  - to refine it, when the page resolves only to a raion/city district
+    *    (no hromada segment) and the mapping places the monument somewhere
+    *    inside that same raion - a mapping result elsewhere is ignored, the
+    *    page's raion being the more authoritative signal.
+    * Monuments unresolved by both are absent from the map.
     */
   def resolveDetailed(monumentDb: MonumentDB): Map[String, Resolution] = {
     val placeByMonumentId = monumentDb.placeByMonumentId
     monumentDb.monuments.flatMap { m =>
-      resolveFromPage(m.page)
-        .orElse(placeByMonumentId.get(m.id).flatMap(katotthFor))
-        .map(adm => m.id -> Resolution(adm, m.page))
+      lazy val fromMapping = placeByMonumentId.get(m.id).flatMap(katotthFor)
+      val resolved = resolveFromPage(m.page) match {
+        case Some(raion) if isRaionLevel(raion) =>
+          fromMapping
+            .filter(adm => raionAncestor(adm).exists(_.code == raion.code))
+            .orElse(Some(raion))
+        case fromPage @ Some(_) => fromPage
+        case None               => fromMapping
+      }
+      resolved.map(adm => m.id -> Resolution(adm, m.page))
     }.toMap
   }
+
+  private def isRaionLevel(node: AdmDivision): Boolean =
+    node.regionType.exists(rt => Set("P", "B").contains(rt.code))
 
   /** Monument id -> current-day KATOTTH location. See `resolveDetailed` for
     * the resolution rules; this is that result with the page dropped.

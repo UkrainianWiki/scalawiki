@@ -124,3 +124,10 @@ Per user feedback: when an oblast has several raion tables, the Total section's 
 - [x] 15.2 Verify against the real cache for Львівська oblast (the established multi-raion-table example): the Total section now lists each of its 7 raions' own totals (378, 525, 3622, 381, 682, 477, 255) before the grand total (6320 = their sum), each linked to its own page. — Confirmed via `probe18.scala` against `csv-cache/wlm-UA-monuments.csv`.
 - [x] 15.3 Update `specs/regional-stat-detail/spec.md` with a requirement covering this behavior. — Added "A multi-table Total section lists each raion's own total before the grand total".
 - [x] 15.4 Run `sbt scalawiki-wlx/test` and confirm the full module test suite passes. — 29/29 in the two affected specs; full suite unaffected by this change (no other spec exercises `render`'s multi-table branch).
+
+## 16. Code-review fixes
+
+- [x] 16.1 Stop a hromada row from disappearing when two distinct hromadas in one raion share a `fullName`: `RegionalCommunityBreakdown.renderRaion` now collects over a `Seq` rather than re-keying a `Map` by name, and sorts by (name, code). — Verified in `RegionalCommunityBreakdownSpec` ("renderRaion with two same-named hromadas").
+- [x] 16.2 Refine a raion-only page resolution with the numeric mapping when the mapping lands inside that same raion (`KatotthResolver.resolveDetailed`); otherwise keep the page's raion. — Verified in `KatotthResolverSpec` ("refine a raion-only page to the numeric mapping's location inside that raion", "keep the page's raion when the numeric mapping points outside it").
+- [x] 16.3 Reconcile `katotth_koatuu.csv` with the refreshed `katotth.csv`: repoint the renumbered Левітанівка row, and resolve codes the codifier dropped to their nearest surviving hromada/raion (`KatotthResolver.nodeForCode`). — Verified in `KatotthResolverSpec` ("fall back to the hromada of a settlement dropped from the bundled codifier", "resolve every hromada/settlement code in the KOATUU mapping against the bundled codifier").
+- [x] 16.4 Run `sbt scalawiki-wlx/test` and confirm the full module test suite passes. — 389 total: 371 passed, 0 failed, 18 skipped, 4 pending.

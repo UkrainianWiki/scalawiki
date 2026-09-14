@@ -2,6 +2,7 @@ package org.scalawiki.wlx
 
 import org.scalawiki.util.TestUtils.resourceAsString
 import org.scalawiki.wlx.dto.Contest
+import org.scalawiki.wlx.dto.Katotth
 import org.scalawiki.wlx.dto.Monument
 import org.scalawiki.wlx.dto.lists.ListConfig.WlmUa
 import org.specs2.mutable.Specification
@@ -227,6 +228,43 @@ class KatotthResolverSpec extends Specification {
       val resolved = KatotthResolver.resolve(mdb)
       resolved must not(beEmpty)
       resolved.values.forall(_.name == "Бурштин") must beTrue
+    }
+
+    "refine a raion-only page to the numeric mapping's location inside that raion" in {
+      // Бурштин is in Івано-Франківський raion; a page naming only that raion
+      // must not stop at the raion when the mapping knows the settlement.
+      val raionPage = "Вікіпедія:Вікі любить пам'ятки/Івано-Франківська область/Івано-Франківський район"
+      val mdb = new MonumentDB(contest, burshtynMonumentDb.allMonuments.map(_.copy(page = raionPage)))
+      val resolved = KatotthResolver.resolve(mdb)
+      resolved must not(beEmpty)
+      resolved.values.forall(_.name == "Бурштин") must beTrue
+      resolved.values.forall(adm => KatotthResolver.hromadaAncestor(adm).exists(_.name == "Бурштинська")) must beTrue
+    }
+
+    "keep the page's raion when the numeric mapping points outside it" in {
+      val otherRaionPage = "Вікіпедія:Вікі любить пам'ятки/Івано-Франківська область/Калуський район"
+      val mdb = new MonumentDB(contest, burshtynMonumentDb.allMonuments.map(_.copy(page = otherRaionPage)))
+      val resolved = KatotthResolver.resolve(mdb)
+      resolved must not(beEmpty)
+      resolved.values.forall(adm => adm.name == "Калуський" && adm.regionType.exists(_.code == "P")) must beTrue
+    }
+  }
+
+  "KatotthResolver.katotthFor" should {
+    "fall back to the hromada of a settlement dropped from the bundled codifier" in {
+      // Бабина Долина (KOATUU 0525386002 -> UA05060090020070449) is absent from
+      // the 07.07.2026 codifier edition; its hromada UA05060090000058521 isn't.
+      KatotthResolver.katotthMap.contains("05060090020070449") must beFalse
+      KatotthResolver.katotthFor("0525386002").map(_.code) === Some("05060090000058521")
+    }
+
+    "resolve every hromada/settlement code in the KOATUU mapping against the bundled codifier" in {
+      // Guards against a codifier refresh silently dropping mapped places.
+      // Oblast and city-district codes (hromada digits "000") are keyed in a
+      // shortened/concatenated form in `katotthMap` and are out of scope here.
+      val placeCodes = Katotth.toKoatuu.keys.filter(code => code.length == 17 && code.substring(4, 7) != "000")
+      placeCodes must not(beEmpty)
+      placeCodes.filterNot(code => KatotthResolver.nodeForCode(code).isDefined) must beEmpty
     }
   }
 
