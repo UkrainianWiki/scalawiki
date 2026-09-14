@@ -125,6 +125,23 @@ object KatotthResolver {
   private def seatType(hromada: AdmDivision): Option[String] =
     hromada.regions.headOption.flatMap(_.regionType).map(_.code)
 
+  private lazy val seatAdjectiveByType: Map[String, String] =
+    seatTypeAdjectives.toSeq.flatMap { case (adj, types) => types.map(_ -> adj) }.toMap
+
+  /** A hromada's row label: its plain `fullName` ("Ковалівська громада"),
+    * or - when another hromada in the same raion shares its name - the
+    * seat-type-qualified form the on-wiki list pages use for exactly that
+    * case ("Миколаївська селищна громада" / "Миколаївська сільська
+    * громада"), so the two rows can be told apart.
+    */
+  def hromadaDisplayName(hromada: AdmDivision): String = {
+    val collides = hromada.parent().exists(_.regions.exists(other =>
+      other.code != hromada.code && other.regionType.exists(_.code == "H") && other.name.equalsIgnoreCase(hromada.name)
+    ))
+    val adjective = if (collides) seatType(hromada).flatMap(seatAdjectiveByType.get) else None
+    adjective.fold(hromada.fullName)(adj => s"${hromada.name} $adj$hromadaSuffix")
+  }
+
   private def disambiguateBySeatType(
       candidates: Seq[AdmDivision],
       adjective: Option[String]

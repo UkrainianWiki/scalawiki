@@ -3,7 +3,7 @@ package org.scalawiki.wlx.stat.reports
 import org.scalawiki.dto.Image
 import org.scalawiki.wlx.dto.lists.ListConfig.WlmUa
 import org.scalawiki.wlx.dto.{AdmDivision, Contest, Monument, RegionType, Region}
-import org.scalawiki.wlx.{ImageDB, MonumentDB}
+import org.scalawiki.wlx.{ImageDB, KatotthResolver, MonumentDB}
 import org.specs2.mutable.Specification
 
 class RegionalCommunityBreakdownSpec extends Specification {
@@ -109,24 +109,39 @@ class RegionalCommunityBreakdownSpec extends Specification {
   }
 
   "RegionalCommunityBreakdown.renderRaion with two same-named hromadas" should {
-    val twinA: Region =
-      Region("01001030", "Громада В", regionType = hromadaType, parent = () => Some(raion))
-    val twinB: Region =
-      Region("01001040", "Громада В", regionType = hromadaType, parent = () => Some(raion))
+    // Real collision: Сумський raion has two distinct "Миколаївська" hromadas.
+    val sumyRaion = "Вікіпедія:Вікі любить пам'ятки/Сумська область/Сумський район/"
+    val selyshchna = KatotthResolver.resolveFromPage(sumyRaion + "Миколаївська селищна громада").get
+    val silska = KatotthResolver.resolveFromPage(sumyRaion + "Миколаївська сільська громада").get
 
     val (text, _) = RegionalCommunityBreakdown.renderRaion(
-      raion,
+      KatotthResolver.raionAncestor(selyshchna).get,
       Set("01-xxx-0001", "01-xxx-0002", "01-xxx-0003"),
-      Map("01-xxx-0001" -> twinA, "01-xxx-0002" -> twinA, "01-xxx-0003" -> twinB),
+      Map("01-xxx-0001" -> selyshchna, "01-xxx-0002" -> selyshchna, "01-xxx-0003" -> silska),
       Map.empty,
       monumentDb,
       totalImageDb
     )
 
-    "keep a separate row for each hromada" in {
-      text must contain(s"| ${twinA.fullName} || 2 || 1 || 50")
-      text must contain(s"| ${twinB.fullName} || 1 || 0 || 0")
+    "keep a separate row for each hromada, labeled with its seat-type adjective" in {
+      text must contain("| Миколаївська селищна громада || 2 || 1 || 50")
+      text must contain("| Миколаївська сільська громада || 1 || 0 || 0")
+      text must not(contain("| Миколаївська громада ||"))
       text must contain("| Total || 3 || 1 || 33")
+    }
+
+    "name the hromada the same way in a Wrong region explanation" in {
+      val rendered = RegionalCommunityBreakdown.render(
+        "01",
+        Set.empty,
+        Set.empty,
+        Set("01-xxx-0001"),
+        Map("01-xxx-0001" -> silska),
+        Map.empty,
+        monumentDb,
+        totalImageDb
+      )
+      rendered must contain("places it in Сумська область / Сумський район / Миколаївська сільська громада")
     }
   }
 

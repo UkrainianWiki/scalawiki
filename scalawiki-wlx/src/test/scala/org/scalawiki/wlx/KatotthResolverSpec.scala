@@ -136,6 +136,19 @@ class KatotthResolverSpec extends Specification {
       selyshchna.get.code !== silska.get.code
     }
 
+    "label same-raion same-named hromadas with their seat-type adjective, and others plainly" in {
+      val sumyRaion = "Вікіпедія:Вікі любить пам'ятки/Сумська область/Сумський район/"
+      val selyshchna = KatotthResolver.resolveFromPage(sumyRaion + "Миколаївська селищна громада").get
+      val silska = KatotthResolver.resolveFromPage(sumyRaion + "Миколаївська сільська громада").get
+      val kovalivska = KatotthResolver.resolveFromPage(
+        "Вікіпедія:Вікі любить пам'ятки/Київська область/Білоцерківський район/Ковалівська громада"
+      ).get
+
+      KatotthResolver.hromadaDisplayName(selyshchna) === "Миколаївська селищна громада"
+      KatotthResolver.hromadaDisplayName(silska) === "Миколаївська сільська громада"
+      KatotthResolver.hromadaDisplayName(kovalivska) === "Ковалівська громада"
+    }
+
     "give up rather than guess when the collision has no disambiguating adjective" in {
       val resolved = KatotthResolver.resolveFromPage(
         "Вікіпедія:Вікі любить пам'ятки/Сумська область/Сумський район/Миколаївська громада"

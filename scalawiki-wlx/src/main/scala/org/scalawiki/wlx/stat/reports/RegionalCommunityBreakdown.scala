@@ -102,9 +102,16 @@ object RegionalCommunityBreakdown {
   /** A monument's fully-qualified location, oblast down to whatever level it
     * resolved to (e.g. "Київська область / Бучанський район / Ірпінська
     * громада"), for explaining where a "wrong region" id actually landed.
+    * Hromadas are named as in their table rows (see
+    * `KatotthResolver.hromadaDisplayName`).
     */
-  private def locationDescription(node: AdmDivision): String =
-    node.namesList.drop(1).mkString(" / ")
+  private def locationDescription(node: AdmDivision): String = {
+    def chain(n: AdmDivision): List[AdmDivision] = n.parent().fold(List(n))(p => chain(p) :+ n)
+    chain(node)
+      .drop(1)
+      .map(n => if (n.regionType.exists(_.code == "H")) KatotthResolver.hromadaDisplayName(n) else n.fullName)
+      .mkString(" / ")
+  }
 
   /** A monument's name, with any embedded `[[wikilink]]`s pointed at
     * uk.wikipedia.org (as `Output.scala` does elsewhere for the same
@@ -139,10 +146,12 @@ object RegionalCommunityBreakdown {
       raionMonumentIds.groupBy(id => resolved.get(id).flatMap(KatotthResolver.hromadaAncestor))
 
     // Collect over a Seq, not the Map: two distinct hromadas can share a
-    // fullName within one raion (e.g. two "Миколаївська громада" in Сумський
-    // raion), and re-keying by name would silently drop one of them.
+    // name within one raion (e.g. two "Миколаївська" in Сумський raion), and
+    // re-keying by name would silently drop one of them. Such hromadas are
+    // labeled with their seat-type adjective (see hromadaDisplayName).
     val hromadaRows = byHromada.toSeq.collect { case (Some(hromada), ids) =>
-      (hromada.fullName, hromada.code) -> row(linkedName(hromada.fullName, ids, pageById), ids, monumentDb, totalImageDb)
+      val name = KatotthResolver.hromadaDisplayName(hromada)
+      (name, hromada.code) -> row(linkedName(name, ids, pageById), ids, monumentDb, totalImageDb)
     }.sortBy(_._1).map(_._2)
 
     val raionUnresolved = byHromada.getOrElse(None, Set.empty)
