@@ -25,7 +25,8 @@ void addOpt(int k, scala.Option<?> o) { if (o.isDefined()) add(k, String.valueOf
 
 long images = 0;
 for (int y = from; y <= to; y++) {
-  var it = imp.imagesFromCsv(dir + campaign + "-" + y + "-images.csv", imp.imagesFromCsv$default$2()).iterator();
+  // full images (slim = false); a fresh pool per file doesn't change what is counted
+  var it = imp.imagesFromCsv(dir + campaign + "-" + y + "-images.csv", imp.imagesFromCsv$default$2(), imp.imagesFromCsv$default$3(), false).iterator();
   while (it.hasNext()) {
     Image a = (Image) it.next(); images++;
     add(0, a.title()); addOpt(1, a.url()); addOpt(2, a.pageUrl()); addOpt(3, a.author()); addOpt(4, a.mime());

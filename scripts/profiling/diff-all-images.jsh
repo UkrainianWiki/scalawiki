@@ -18,7 +18,7 @@ int from = Integer.getInteger("from", 2012), to = Integer.getInteger("to", 2025)
 var byId = new java.util.HashMap<Long, Image>();
 int perYearRows = 0, perYearNoId = 0, dupAcrossYears = 0;
 for (int y = from; y <= to; y++) {
-  var it = imp.imagesFromCsv(dir + campaign + "-" + y + "-images.csv", imp.imagesFromCsv$default$2()).iterator();
+  var it = imp.imagesFromCsv(dir + campaign + "-" + y + "-images.csv", imp.imagesFromCsv$default$2(), imp.imagesFromCsv$default$3(), false).iterator();
   while (it.hasNext()) {
     Image i = (Image) it.next();
     perYearRows++;
@@ -32,7 +32,7 @@ int total = 0, equal = 0, extra = 0, extraWiki = 0, noId = 0, differ = 0;
 var fieldDiffs = new java.util.TreeMap<String, Integer>();
 var combos = new java.util.TreeMap<String, Integer>();
 var examples = new java.util.ArrayList<String>();
-var it2 = imp.imagesFromCsv(dir + campaign + "-all-images.csv", imp.imagesFromCsv$default$2()).iterator();
+var it2 = imp.imagesFromCsv(dir + campaign + "-all-images.csv", imp.imagesFromCsv$default$2(), imp.imagesFromCsv$default$3(), false).iterator();
 while (it2.hasNext()) {
   Image a = (Image) it2.next();
   total++;

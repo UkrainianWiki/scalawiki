@@ -77,6 +77,15 @@ class ImageDbProvider(
   private val csvRefresh: Boolean = config.csvCacheRefresh && csvAutoCache
   private val csvResync: Boolean = config.csvCacheResync && csvAutoCache && !csvRefresh
 
+  /** Shared by every CSV read this run, so a value repeated across files (an
+    * author, a category) is held once. */
+  private val valuePool = new ImageCsvImporter.ValuePool
+
+  /** Past years' images are loaded slim (see `ImageCsvImporter.slim`) unless
+    * they may be written out: `--csv-cache-resync` rewrites their CSVs,
+    * `--export-images-csv` exports them. */
+  private val slimPastYears: Boolean = !csvResync && config.exportImagesCsv.isEmpty
+
   /** When the CSV at `path` was last written — the instant the cache was known
     * accurate. Used as the "changed since" cut-off for rows that predate the
     * `last_revid` column (no revid to diff). Falls back to "now" (nothing looks
@@ -165,7 +174,8 @@ class ImageDbProvider(
         val duplicate = ImageCsvExporter.inPerYear(perYearIds)(image)
         if (duplicate) skipped += 1
         !duplicate
-      }
+      },
+      pool = valuePool
     )
     if (skipped > 0) {
       logger.info(
@@ -187,7 +197,7 @@ class ImageDbProvider(
           new ImageDB(yearContest, imagesFromCsvOpt(year).getOrElse(Nil), monumentDb, config.minMpx)
         )
       case None if csvAutoCache && !csvRefresh && new File(path).exists() =>
-        val cached = ImageCsvImporter.imagesFromCsv(path)
+        val cached = ImageCsvImporter.imagesFromCsv(path, pool = valuePool, slim = slimPastYears)
         if (!csvResync)
           Future.successful(new ImageDB(yearContest, cached, monumentDb, config.minMpx))
         else
@@ -195,7 +205,8 @@ class ImageDbProvider(
       case None =>
         fetchImageDb(yearContest, monumentDb).map { db =>
           writeCsvCache(db)
-          db
+          if (slimPastYears) db.copy(images = db.images.map(ImageCsvImporter.slim(_, valuePool)).toVector)
+          else db
         }
     }
   }
@@ -203,7 +214,7 @@ class ImageDbProvider(
   private def currentYearImages(monumentDb: Some[MonumentDB])(yearContest: Contest): Future[ImageDB] = {
     val path = yearCsvPath(yearContest.year)
     if (csvAutoCache && !csvRefresh && new File(path).exists())
-      syncYearFromCategory(yearContest, monumentDb, ImageCsvImporter.imagesFromCsv(path), path)
+      syncYearFromCategory(yearContest, monumentDb, ImageCsvImporter.imagesFromCsv(path, pool = valuePool), path)
     else
       fetchImageDb(yearContest, monumentDb).map { db =>
         writeCsvCache(db)
@@ -369,7 +380,8 @@ class ImageDbProvider(
   ): Future[ImageDB] = {
     val perYearIds = ImageCsvExporter.perYearPageIds(dbsByYear)
     // skips the per-year copies an older, full all-images CSV still repeats
-    val cached = ImageCsvImporter.imagesFromCsv(path, image => !ImageCsvExporter.inPerYear(perYearIds)(image))
+    val cached =
+      ImageCsvImporter.imagesFromCsv(path, image => !ImageCsvExporter.inPerYear(perYearIds)(image), pool = valuePool)
     val (cachedWiki, cachedCommons) = cached.partition(ImageCsvExporter.isProjectWikiHosted)
     val writtenAt = cacheWrittenAt(path)
     val query = imageQuery.getOrElse(liveImageQuery)
@@ -427,7 +439,8 @@ class ImageDbProvider(
             s"Run --export-images-csv for campaign=${contest.campaign} year=$year first."
         )
       }
-      ImageCsvImporter.imagesFromCsv(path)
+      // only past years come from here; they're never written back
+      ImageCsvImporter.imagesFromCsv(path, pool = valuePool, slim = slimPastYears)
     }
 
   private def imagesByTemplate(

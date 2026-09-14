@@ -65,7 +65,8 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       csvCache: Boolean = true,
       csvCacheRefresh: Boolean = false,
       csvCacheResync: Boolean = false,
-      imagesFromCsv: Option[String] = None
+      imagesFromCsv: Option[String] = None,
+      exportImagesCsv: Option[String] = None
   ): Statistics = {
     val monumentQuery = mock[MonumentQuery]
     monumentQuery.byMonumentTemplate(date = None) returns Future.successful(monuments)
@@ -77,7 +78,8 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       csvCache = csvCache,
       csvCacheRefresh = csvCacheRefresh,
       csvCacheResync = csvCacheResync,
-      imagesFromCsv = imagesFromCsv
+      imagesFromCsv = imagesFromCsv,
+      exportImagesCsv = exportImagesCsv
     )
     new Statistics(contest, startYear, monumentQuery, Some(imageQuery), None, mock[MwBot], cfg)
   }
@@ -135,6 +137,36 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
 
       data.imageDbByYear(2015).map(_.images.map(_.title).toSeq) must beSome(Seq("File:P.jpg"))
       there was no(q).imageIdsFromCategory(prevContest)
+    }
+
+    "be loaded slim when read verbatim, but full with --csv-cache-resync or --export-images-csv" in {
+      val dir = cacheDir()
+      val full = img("File:P.jpg", 1L, revId = Some(100L)).copy(
+        url = Some("https://upload.wikimedia.org/p.jpg"),
+        categories = Set("Some category", "Ineligible submissions for WLM 2015 in Ukraine")
+      )
+      ImageCsvExporter.export(new ImageDB(prevContest, Seq(full), None), campaign, isCurrent = false, dir.toString)
+
+      def pastImage(resync: Boolean = false, export: Option[String] = None): Image = {
+        val q = newImageQuery()
+        q.imagesFromCategory(contest) returns Future.successful(Nil)
+        q.imageIdsFromCategory(prevContest) returns Future.successful(Seq(rev(1L, 100L)))
+        stats(dir, q, startYear = Some(2015), csvCacheResync = resync, exportImagesCsv = export)
+          .gatherData(total = false).await
+          .imageDbByYear(2015).get.images.head
+      }
+
+      val slim = pastImage()
+      slim.title must_== "File:P.jpg"
+      slim.monumentIds must_== Seq("123")
+      slim.url must beNone
+      slim.revId must beNone
+      slim.categories must_== Set("Ineligible submissions for WLM 2015 in Ukraine")
+
+      pastImage(resync = true) must_== full
+      pastImage(export = Some(cacheDir().toString)) must_== full
+      // the cached CSV still has everything
+      ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2015).toString) must_== Seq(full)
     }
 
     "with --csv-cache-resync: keep unchanged, refetch changed, drop deleted" in {

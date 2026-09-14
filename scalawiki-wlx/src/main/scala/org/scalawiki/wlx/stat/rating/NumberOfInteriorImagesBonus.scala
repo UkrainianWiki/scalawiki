@@ -60,8 +60,12 @@ object NumberOfInteriorImagesBonus {
     */
   def isInterior(image: Image): Boolean =
     image.specialNominations.exists(interiorTemplate.findFirstIn(_).isDefined) ||
-      image.categories.exists { c =>
-        val lc = c.toLowerCase
-        lc.contains("interior") || lc.contains("інтер'єр") || lc.contains("інтер’єр")
-      }
+      image.categories.exists(isInteriorCategory)
+
+  /** The category half of [[isInterior]]. Also decides which categories slim
+    * (past-year) images keep, see `ImageCsvImporter.slim`. */
+  def isInteriorCategory(category: String): Boolean = {
+    val lc = category.toLowerCase
+    lc.contains("interior") || lc.contains("інтер'єр") || lc.contains("інтер’єр")
+  }
 }
