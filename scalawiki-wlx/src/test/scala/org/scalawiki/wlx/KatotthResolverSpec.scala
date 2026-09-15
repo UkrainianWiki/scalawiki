@@ -281,6 +281,39 @@ class KatotthResolverSpec extends Specification {
     }
   }
 
+  "KatotthResolver.koatuuForCurrentName" should {
+    "find a settlement renamed since KOATUU was frozen by its current KATOTTH name" in {
+      KatotthResolver.koatuuForCurrentName("Самар", "12119") === Some("1211900000")
+      KatotthResolver.koatuuForCurrentName("Шептицький", "46118") === Some("4611800000")
+    }
+
+    "not match a current name outside the monument's own KOATUU raion or city council" in {
+      KatotthResolver.koatuuForCurrentName("Самар", "46118") must beNone
+    }
+  }
+
+  "MonumentDB.placeByMonumentId" should {
+    "place a monument listed under a settlement's new name the same as under its old name" in {
+      def place(id: String, city: String): Option[String] = {
+        val monument = new Monument(id = id, name = "Test", city = Some(city), listConfig = Some(WlmUa))
+        new MonumentDB(contest, Seq(monument)).placeByMonumentId.get(id)
+      }
+
+      val samar = place("12-119-0004", "[[Самар (місто)|Самар]]")
+      samar must beSome
+      samar === place("12-119-0004", "Новомосковськ")
+
+      val sheptytskyi = place("46-118-0008", "[[Шептицький]]")
+      sheptytskyi must beSome
+      sheptytskyi === place("46-118-0008", "Червоноград")
+    }
+
+    "still leave a monument without a place when no current name matches either" in {
+      val monument = new Monument(id = "12-119-0004", name = "Test", city = Some("Неіснуюче"), listConfig = Some(WlmUa))
+      new MonumentDB(contest, Seq(monument)).placeByMonumentId.get("12-119-0004") must beNone
+    }
+  }
+
   "KatotthResolver.resolveDetailed" should {
     "keep the resolved page consistent with the resolved division when two monuments share one id" in {
       // Real case: WLM id 85-369-0198 is duplicated by a data-entry error

@@ -26,6 +26,32 @@ object KatotthResolver {
     if (candidates.nonEmpty) Some(candidates.maxBy(_.level)) else None
   }
 
+  // Settlement nodes (місто/смт/село/селище), keyed by lowercased current name,
+  // each paired with its KOATUU code from the KATOTTH->KOATUU mapping.
+  private lazy val koatuuByCurrentName: Map[String, Seq[String]] =
+    katotthMap.values.toSeq
+      .filter(_.regionType.exists(rt => Set("M", "T", "C", "X").contains(rt.code)))
+      .flatMap(node => Katotth.toKoatuu.get(node.code).map(normalizeName(node.name) -> _))
+      .groupBy(_._1)
+      .map { case (name, pairs) => name -> pairs.map(_._2).distinct }
+
+  private def normalizeName(name: String): String = name.replace('’', '\'').toLowerCase
+
+  /** KOATUU code of the settlement currently (per KATOTTH) named `name` whose
+    * KOATUU code starts with `koatuuPrefix` - the digits of a monument id's
+    * first two segments ("12-119" -> "12119"), i.e. its oblast and KOATUU raion
+    * or city council. KOATUU is frozen, so a settlement renamed since then
+    * (Новомосковськ -> Самар, Червоноград -> Шептицький) can only be found under
+    * its new name here; its code didn't change, so this is the same place a
+    * KOATUU lookup by the old name finds. None unless exactly one settlement
+    * matches.
+    */
+  def koatuuForCurrentName(name: String, koatuuPrefix: String): Option[String] =
+    koatuuByCurrentName.getOrElse(normalizeName(name), Nil).filter(_.startsWith(koatuuPrefix)) match {
+      case Seq(single) => Some(single)
+      case _           => None
+    }
+
   // Hromada nodes keyed by the first 10 digits of their 17-digit KATOTTH code
   // (oblast 2 + raion 2 + hromada 3 + settlement "000").
   private lazy val hromadaByPrefix: Map[String, AdmDivision] =

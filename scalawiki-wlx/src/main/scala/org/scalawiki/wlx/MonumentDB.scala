@@ -148,10 +148,31 @@ class MonumentDB(
       if (candidates.size == 1) {
         Some(id -> candidates.head.code)
       } else {
-        PerPlaceStat.fallbackMap.get(id).map(id -> _)
+        PerPlaceStat.fallbackMap
+          .get(id)
+          .orElse(if (candidates.isEmpty) placeByCurrentName(regionId, city) else None)
+          .map(id -> _)
       }
     }).flatten.toMap
   }
+
+  /** The KOATUU place of a settlement listed under a name KOATUU doesn't know -
+    * typically one renamed after KOATUU was frozen - found by its current
+    * KATOTTH name (see `KatotthResolver.koatuuForCurrentName`) and mapped back
+    * to the same KOATUU node a lookup by its old name returns.
+    */
+  private def placeByCurrentName(regionId: String, city: String): Option[String] =
+    if (country.code != "UA") None
+    else
+      KatotthResolver
+        .koatuuForCurrentName(AdmDivision.cleanName(city), regionId.replace("-", ""))
+        .flatMap(koatuu => koatuuPlaceByPaddedCode.get(koatuu.padTo(10, '0')))
+
+  // KOATUU node codes are shortened by level (oblast "12", raion or city
+  // council "12119", settlement the full 10 digits); padding them to 10 digits
+  // gives the full codes the KATOTTH->KOATUU mapping uses.
+  private lazy val koatuuPlaceByPaddedCode: Map[String, String] =
+    country.mapByCode.keys.map(code => code.padTo(10, '0') -> code).toMap
 
 }
 
