@@ -231,14 +231,26 @@ object Statistics {
       }
       val contest = Contest.byCampaign(cfg.campaign, cfg.years.last, cfg.rateConfig)
 
-      if (cfg.exportCsv.isDefined) {
+      // Checked before anything is fetched: filling the lists with a year's rating
+      // rules that a later year's already replace would overwrite every list's
+      // бали with outdated points.
+      val refusal =
+        if (cfg.fillListsRating)
+          org.scalawiki.wlx.RatingListFiller.pastYearRatingError(contest, cfg.allowPastYearRating)
+        else None
+      refusal.foreach { error =>
+        Console.err.println(error)
+        exitCode = 2
+      }
+
+      if (refusal.isEmpty && cfg.exportCsv.isDefined) {
         MonumentCsvExporter.exportFromWiki(MonumentQuery.create(contest), cfg.campaign, cfg.exportCsv)
       }
 
       // Run the full statistics pipeline when either:
       // - no monument CSV export was requested (normal run), or
       // - image CSV export was requested (needs stats pipeline to populate dbsByYear)
-      if (cfg.exportCsv.isEmpty || cfg.exportImagesCsv.isDefined) {
+      if (refusal.isEmpty && (cfg.exportCsv.isEmpty || cfg.exportImagesCsv.isDefined)) {
         val cacheName = s"${cfg.campaign}-${contest.year}"
         val imageQueryWiki = ImageQuery.create(
           new CachedBot(Site.ukWiki, cacheName + "-wiki", true)

@@ -1,11 +1,12 @@
 package org.scalawiki.wlx
 
-import org.scalawiki.wlx.dto.Monument
+import org.scalawiki.wlx.dto.{Contest, Monument}
 import org.scalawiki.wlx.stat.ContestStat
 import org.scalawiki.wlx.stat.rating.{RateSum, Rater}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 /** Fills the "rating" field of WLM/WLE monument list rows with the number of points
@@ -59,6 +60,27 @@ object RatingListFiller {
       }.toMap
     }
   }
+
+  /** The newest year that has its own `rates.<year>` block in the campaign config. */
+  def latestRatesYear(contest: Contest): Option[Int] =
+    contest.config
+      .filter(_.hasPath("rates"))
+      .map(_.getConfig("rates").root().keySet().asScala.flatMap(key => Try(key.toInt).toOption))
+      .filter(_.nonEmpty)
+      .map(_.max)
+
+  /** Why the lists must not be filled with `contest`'s year's rating rules, if
+    * they must not: the campaign config already has `rates` for a later year, so
+    * the lists - which show what a photo would score in the upcoming contest -
+    * would get points by outdated rules. `allowPastYear`
+    * (`--allow-past-year-rating`) approves such a run explicitly.
+    */
+  def pastYearRatingError(contest: Contest, allowPastYear: Boolean): Option[String] =
+    latestRatesYear(contest).filter(latest => latest > contest.year && !allowPastYear).map { latest =>
+      s"--fill-lists-rating: refusing to fill the lists with the ${contest.year} rating rules while " +
+        s"rates.$latest is configured for ${contest.campaign}. Run with --year $latest, or add " +
+        s"--allow-past-year-rating to use the ${contest.year} rules anyway."
+    }
 
   def fillLists(stat: ContestStat): Future[Unit] = {
     val monumentDb = stat.monumentDb.getOrElse {

@@ -66,6 +66,7 @@ once it rolls). Nothing to configure — it's created on first run.
 | `--no-progress`| turn off the live bar; progress is still written to `logs/scalawiki.log` as periodic lines. Useful when piping output. |
 | `--dry-run`    | build every report but publish nothing: each page edit's text is saved to `dry-run/<host>/<title>.wiki` instead (`/`, `:` etc. in titles become `_`) and uploads are skipped. Wiki reads and the local caches work as usual. |
 | `--dry-run-dir DIR` | save `--dry-run` output under `DIR` instead of `dry-run` |
+| `--allow-past-year-rating` | let `--fill-lists-rating` run for a `--year` whose rating rules (`rates.<year>` in the campaign config) a later configured year already replaces. Without it such a run stops before fetching anything (exit code 2), so the lists aren't overwritten with outdated points. |
 
 Report text and CSVs are written to **stdout**; the progress bar, the phase
 lines and the `=== Publish summary ===` all go to **stderr** — so
@@ -212,7 +213,8 @@ Override with `JAVA_OPTS="-Dscalawiki.write.maxConcurrent=8"` if needed.
 ./run-stats.sh -c wlm-ua -y 2024 --gallery --regional-gallery
 
 # fill the rating (бали) field in monument lists over a year range
-# (note: the start-year flag is --start-year / -s, not --start)
+# (note: the start-year flag is --start-year / -s, not --start; --year must be the
+# year whose rates apply - an older year is refused unless --allow-past-year-rating)
 ./run-stats.sh -c wlm-ua --start-year 2012 --year 2026 --fill-lists-rating
 
 # Wiki Loves Earth

@@ -196,4 +196,15 @@ class StatParamsSpec extends Specification {
     }
   }
 
+  "--allow-past-year-rating" should {
+
+    "be off by default" in {
+      StatParams.parse(Seq("--campaign", "WLM-UA")).allowPastYearRating must beFalse
+    }
+
+    "be enabled by --allow-past-year-rating" in {
+      StatParams.parse(Seq("--campaign", "WLM-UA", "--allow-past-year-rating")).allowPastYearRating must beTrue
+    }
+  }
+
 }

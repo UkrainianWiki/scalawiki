@@ -44,7 +44,8 @@ case class StatConfig(
     verbose: Boolean = false,
     progress: Boolean = true,
     dryRun: Boolean = false,
-    dryRunDir: String = "dry-run"
+    dryRunDir: String = "dry-run",
+    allowPastYearRating: Boolean = false
 ) {
 
   /** Directory holding the automatic image CSV cache. An explicit
@@ -92,6 +93,11 @@ class StatParams(arguments: Seq[String]) extends ScallopConf(arguments) {
     name = "fill-lists-rating",
     descr =
       "fill the rating (бали) field in monument lists with the points a new photo would score; run with a year range"
+  )
+  val allowPastYearRating = opt[Boolean](
+    name = "allow-past-year-rating",
+    descr =
+      "let --fill-lists-rating use a --year whose rating rules are already replaced by a later year's rates in the campaign config (refused otherwise)"
   )
   val wrongIds = opt[Boolean](name = "wrong-ids", descr = "report wrong ids")
   val missingIds =
@@ -213,7 +219,8 @@ object StatParams {
       verbose = conf.verbose.getOrElse(false),
       progress = !conf.noProgress.getOrElse(false),
       dryRun = conf.dryRun.getOrElse(false),
-      dryRunDir = conf.dryRunDir.getOrElse("dry-run")
+      dryRunDir = conf.dryRunDir.getOrElse("dry-run"),
+      allowPastYearRating = conf.allowPastYearRating.getOrElse(false)
     )
   }
 }

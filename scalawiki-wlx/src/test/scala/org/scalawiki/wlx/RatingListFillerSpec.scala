@@ -111,4 +111,29 @@ class RatingListFillerSpec extends Specification {
       RatingUpdater.format(12.5) === "12.5"
     }
   }
+
+  "RatingListFiller.pastYearRatingError" should {
+    val latest = RatingListFiller.latestRatesYear(Contest.WLMUkraine(2026)).get
+
+    "refuse a year whose rating rules a later configured year replaces" in {
+      val error = RatingListFiller.pastYearRatingError(Contest.WLMUkraine(latest - 1), allowPastYear = false)
+      error must beSome
+      error.get must contain(s"--year $latest")
+      error.get must contain("--allow-past-year-rating")
+    }
+
+    "allow the newest configured year, and a later year that has no rules of its own yet" in {
+      RatingListFiller.pastYearRatingError(Contest.WLMUkraine(latest), allowPastYear = false) must beNone
+      RatingListFiller.pastYearRatingError(Contest.WLMUkraine(latest + 1), allowPastYear = false) must beNone
+    }
+
+    "allow a past year when explicitly approved" in {
+      RatingListFiller.pastYearRatingError(Contest.WLMUkraine(latest - 1), allowPastYear = true) must beNone
+    }
+
+    "not refuse a campaign without per-year rating rules" in {
+      val noConfig = Contest.WLMUkraine(latest - 1).copy(config = None)
+      RatingListFiller.pastYearRatingError(noConfig, allowPastYear = false) must beNone
+    }
+  }
 }
