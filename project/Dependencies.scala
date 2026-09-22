@@ -118,7 +118,7 @@ object Dependencies {
     }
 
     object Jackson {
-      val JacksonV = "2.18.2"
+      val JacksonV = "2.18.11"
 
       val core = "com.fasterxml.jackson.core" % "jackson-core" % JacksonV
       val annotations =
