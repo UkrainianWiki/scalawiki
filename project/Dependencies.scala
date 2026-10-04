@@ -64,7 +64,7 @@ object Dependencies {
   object Library {
 
     object Pekko {
-      val PekkoV = "1.0.3"
+      val PekkoV = "1.7.1"
       val PekkoHttpV = "1.0.1"
 
       val actor = "org.apache.pekko" %% "pekko-actor" % PekkoV
