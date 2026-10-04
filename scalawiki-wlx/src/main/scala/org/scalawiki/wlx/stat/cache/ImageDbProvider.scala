@@ -216,7 +216,11 @@ class ImageDbProvider(
     if (csvAutoCache && !csvRefresh && new File(path).exists())
       syncYearFromCategory(yearContest, monumentDb, ImageCsvImporter.imagesFromCsv(path, pool = valuePool), path)
     else
-      fetchImageDb(yearContest, monumentDb).map { db =>
+      // Live, not through the `http-cache/` request cache: the current year's
+      // category is still growing, and a cached response (e.g. the empty listing
+      // from before the first upload) would be replayed forever - an empty DB
+      // writes no CSV, so the next run would come straight back here.
+      fetchImageDb(yearContest, monumentDb, Some(imageQuery.getOrElse(liveImageQuery))).map { db =>
         writeCsvCache(db)
         db
       }
@@ -421,11 +425,12 @@ class ImageDbProvider(
 
   private def fetchImageDb(
       yearContest: Contest,
-      monumentDb: Some[MonumentDB]
+      monumentDb: Some[MonumentDB],
+      query: Option[ImageQuery] = None
   ): Future[ImageDB] =
     ImageDB.create(
       yearContest,
-      imageQuery.getOrElse(getImageQuery(Some(yearContest.year))),
+      query.orElse(imageQuery).getOrElse(getImageQuery(Some(yearContest.year))),
       monumentDb,
       config.minMpx
     )
