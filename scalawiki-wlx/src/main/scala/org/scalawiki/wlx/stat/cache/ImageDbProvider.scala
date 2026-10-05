@@ -273,10 +273,12 @@ class ImageDbProvider(
             path
           )
       case None =>
-        fetchImageDb(yearContest, monumentDb).map { db =>
-          writeCsvCache(db)
-          if (slimPastYears) db.copy(images = db.images.map(ImageCsvImporter.slim(_, valuePool)).toVector)
-          else db
+        oneFullFetchAtATime {
+          fetchImageDb(yearContest, monumentDb).map { db =>
+            writeCsvCache(db)
+            if (slimPastYears) db.copy(images = db.images.map(ImageCsvImporter.slim(_, valuePool)).toVector)
+            else db
+          }
         }
     }
   }
@@ -290,9 +292,11 @@ class ImageDbProvider(
       // category is still growing, and a cached response (e.g. the empty listing
       // from before the first upload) would be replayed forever - an empty DB
       // writes no CSV, so the next run would come straight back here.
-      fetchImageDb(yearContest, monumentDb, Some(imageQuery.getOrElse(liveImageQuery))).map { db =>
-        writeCsvCache(db)
-        db
+      oneFullFetchAtATime {
+        fetchImageDb(yearContest, monumentDb, Some(imageQuery.getOrElse(liveImageQuery))).map { db =>
+          writeCsvCache(db)
+          db
+        }
       }
   }
 
@@ -517,6 +521,21 @@ class ImageDbProvider(
           sweepLooksComplete(commonsRevs.size, cachedCommons.count(_.pageId.isDefined), None)
       )
     } yield new ImageDB(contest, dbsByYear.flatMap(_.images) ++ extras.images, monumentDb, config.minMpx)
+  }
+
+  /** The last full year fetch queued by [[oneFullFetchAtATime]]. */
+  private var lastFullFetch: Future[Any] = Future.unit
+
+  /** Run a full year fetch (no usable CSV) only after the previous one has
+    * finished, failed or not. The per-year DBs are built in parallel, and when
+    * several years have no CSV (a fresh server, a deleted cache, a new CSV
+    * column) fetching them all at once holds every year's full images and
+    * parsed responses together - more than a 1 GB heap. One at a time, a fetch
+    * holds one year's, which is slimmed before the next starts. */
+  private def oneFullFetchAtATime[T](fetch: => Future[T]): Future[T] = synchronized {
+    val result = lastFullFetch.transformWith(_ => fetch)
+    lastFullFetch = result
+    result
   }
 
   private def fetchImageDb(

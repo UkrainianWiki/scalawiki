@@ -15,7 +15,8 @@ import spray.util.pimpFuture
 
 import java.nio.file.{Files, Path, Paths}
 import java.time.ZonedDateTime
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
+import scala.util.Try
 
 class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
     extends Specification
@@ -119,6 +120,33 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
 
       data.imageDbByYear(2015).map(_.images.map(_.title).toSeq) must beSome(Seq("File:A.jpg"))
       there was no(q2).imagesFromCategory(prevContest)
+    }
+
+    "be fetched one year at a time when several years have no CSV" in {
+      val dir = cacheDir()
+      val contest2014 = contest.copy(year = 2014)
+      val first = Promise[Seq[Image]]()
+
+      val q = newImageQuery()
+      q.imagesFromCategory(contest2014) returns first.future
+      q.imagesFromCategory(prevContest) returns Future.successful(Seq(img("File:B.jpg", 2L)))
+      q.imagesFromCategory(contest) returns Future.successful(Nil)
+
+      def fetched(c: Contest): Boolean =
+        Try(org.mockito.Mockito.verify(q).imagesFromCategory(c)).isSuccess
+      def waitFor(condition: => Boolean): Boolean =
+        (1 to 100).exists { _ => condition || { Thread.sleep(50); false } }
+
+      val gathered = stats(dir, q, startYear = Some(2014)).gatherData(total = false)
+
+      waitFor(fetched(contest2014)) must beTrue
+      Thread.sleep(300)
+      fetched(prevContest) must beFalse // queued behind 2014's fetch
+
+      first.success(Seq(img("File:A.jpg", 1L)))
+      val data = gathered.await
+      data.imageDbByYear(2015).map(_.images.map(_.title).toSeq) must beSome(Seq("File:B.jpg"))
+      data.imageDbByYear(2014).map(_.images.map(_.title).toSeq) must beSome(Seq("File:A.jpg"))
     }
 
     "be refetched and overwritten when csvCacheRefresh is set" in {

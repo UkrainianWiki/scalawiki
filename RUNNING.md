@@ -103,7 +103,9 @@ csv-cache/wlm-ua-all-images.csv    # all-time DB's images in no per-year CSV (th
   against them. Deleting a CSV still forces a full refetch.
 * **A CSV written before a column was added** (e.g. `media_type`) is refetched
   in full and rewritten, past years included, the first time a run reads it.
-  Expect the first run after such an upgrade to refetch every year.
+  Expect the first run after such an upgrade to refetch every year. Years that
+  have to be fetched in full are fetched one at a time, so this needs about the
+  memory of the largest year, not of all of them.
 * **Past contest years are loaded slim** to save memory: only the fields their
   reports, ratings and eligibility checks read (title, author, monument ids,
   sizes, special nominations, media type, EXIF date — or the upload date when
