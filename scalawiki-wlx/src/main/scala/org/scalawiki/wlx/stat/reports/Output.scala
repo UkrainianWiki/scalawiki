@@ -450,53 +450,6 @@ object Output {
       .edit(text, Some("updating"))
   }
 
-  def wrongIds(imageDb: ImageDB, monumentDb: MonumentDB): Unit = {
-    val bot = MwBot.fromHost(MwBot.commons)
-
-    val wrongIdImages = imageDb.images
-      .filterNot(image =>
-        image.monumentId.fold(false)(id =>
-          monumentDb.ids.contains(id)
-            || id.startsWith("88")
-            || id.startsWith("93")
-            || id.startsWith("95")
-            || id.startsWith("97")
-            || id.startsWith("98")
-            || id.startsWith("99")
-        )
-      )
-
-    val notObvious = wrongIdImages.filterNot(
-      _.categories.exists(_.startsWith("Obviously ineligible"))
-    )
-
-    val contest = imageDb.contest
-    val contestPage = contest.name
-
-    val text = notObvious.map(_.title).mkString("<gallery>", "\n", "</gallery>")
-    bot
-      .page(s"Commons:$contestPage/Images with bad ids")
-      .edit(text, Some("updating"))
-  }
-
-  def missingIds(imageDb: ImageDB, monumentDb: MonumentDB): Unit = {
-    val bot = MwBot.fromHost(MwBot.commons)
-
-    val images = imageDb.images.filter(_.monumentIds.isEmpty)
-
-    val notObvious = images.filterNot(
-      _.categories.exists(_.startsWith("Obviously ineligible"))
-    )
-
-    val contest = imageDb.contest
-    val contestPage = contest.name
-
-    val text = notObvious.map(_.title).mkString("<gallery>", "\n", "</gallery>")
-    bot
-      .page(s"Commons:$contestPage/Images with missing ids")
-      .edit(text, Some("updating"))
-  }
-
   def multipleIds(imageDb: ImageDB, monumentDb: MonumentDB): Unit = {
     val bot = MwBot.fromHost(MwBot.commons)
 

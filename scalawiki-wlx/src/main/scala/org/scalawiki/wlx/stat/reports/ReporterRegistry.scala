@@ -100,14 +100,6 @@ class ReporterRegistry(
     }
 
     monumentDb.foreach { mDb =>
-      if (cfg.wrongIds) {
-        step("wrongIds")(Output.wrongIds(imageDb, mDb))
-      }
-
-      if (cfg.missingIds) {
-        step("missingIds")(Output.missingIds(imageDb, mDb))
-      }
-
       if (cfg.multipleIds) {
         step("multipleIds")(Output.multipleIds(imageDb, mDb))
       }
@@ -152,6 +144,10 @@ class ReporterRegistry(
 
     if (cfg.regionalStat) {
       step("regionalStat")(Output.regionalStat(stat))
+    }
+
+    if ((cfg.wrongIds || cfg.missingIds) && monumentDb.isDefined) {
+      step("imageIdProblems")(ImageIdProblems.updateWiki(stat, cfg.wrongIds, cfg.missingIds, commons))
     }
 
     if (cfg.newMonuments) {

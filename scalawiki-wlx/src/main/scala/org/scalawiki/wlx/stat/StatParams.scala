@@ -99,9 +99,9 @@ class StatParams(arguments: Seq[String]) extends ScallopConf(arguments) {
     descr =
       "let --fill-lists-rating use a --year whose rating rules are already replaced by a later year's rates in the campaign config (refused otherwise)"
   )
-  val wrongIds = opt[Boolean](name = "wrong-ids", descr = "report wrong ids")
+  val wrongIds = opt[Boolean](name = "wrong-ids", descr = "report images whose monument id matches no monument, one page per year of the run (special nomination images left out)")
   val missingIds =
-    opt[Boolean](name = "missing-ids", descr = "report missing ids")
+    opt[Boolean](name = "missing-ids", descr = "report images with no monument id, one page per year of the run (special nomination images left out)")
   val multipleIds =
     opt[Boolean](name = "multiple-ids", descr = "report multiple ids")
   val lowRes =
