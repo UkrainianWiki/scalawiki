@@ -186,7 +186,7 @@ trait QueryLibrary {
   ): Generator = {
     val params = Seq(
       EiTitle("Template:" + template),
-      EiLimit("500")
+      EiLimit("max")
     ) ++ (if (ns.nonEmpty) Seq(EiNamespace(ns.toSeq)) else Seq.empty)
 
     Generator(EmbeddedIn(params: _*))

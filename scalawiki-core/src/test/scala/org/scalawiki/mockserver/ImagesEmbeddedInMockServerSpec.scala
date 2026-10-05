@@ -20,7 +20,7 @@ class ImagesEmbeddedInMockServerSpec
         "rvprop" -> "ids|content|timestamp|user|userid",
         "iiprop" -> "timestamp|user|size",
         "generator" -> "embeddedin",
-        "geilimit" -> "500"
+        "geilimit" -> "max"
       )
 
       stubOk(action, response)
@@ -50,7 +50,7 @@ class ImagesEmbeddedInMockServerSpec
         "rvprop" -> "ids|content|timestamp|user|userid",
         "iiprop" -> "timestamp|user|size",
         "generator" -> "embeddedin",
-        "geilimit" -> "500",
+        "geilimit" -> "max",
         "rvslots" -> "main"
       )
 
