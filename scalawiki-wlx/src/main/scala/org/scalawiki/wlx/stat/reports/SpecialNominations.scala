@@ -92,7 +92,7 @@ class SpecialNominations(stat: ContestStat, imageDb: ImageDB) {
         imageDb.subSet(i => i.monumentIds.exists(newMonumentIds.contains))
       )
       galleryByAuthor(
-        imagesPage + " by author",
+        newPicturedImagesPage + " by author",
         imageDb.subSet(i => i.monumentIds.exists(newMonumentIds.contains))
       )
       s"${newMonumentIds.size.toString} [[$newPicturedImagesPage by region|by region]], [[$newPicturedImagesPage by author|by author]]"
