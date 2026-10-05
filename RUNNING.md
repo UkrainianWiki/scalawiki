@@ -126,6 +126,7 @@ Flags:
 | `--csv-cache-dir DIR`  | use `DIR` instead of `csv-cache`                                  |
 | `--csv-cache-refresh`  | ignore existing CSV caches this run and overwrite them            |
 | `--csv-cache-resync`   | re-check past years + all-images against the wiki (id+revision sweep); refetch only changed rows, drop deleted |
+| `--csv-cache-resync-interval DAYS` | with `--csv-cache-resync`: skip it when the last completed resync was less than DAYS days ago (its date is kept in `csv-cache/<campaign>-resync.date`); for a daily cron job that should re-check past years weekly |
 
 `--images-from-csv DIR` still works as before (strict: the per-year files must
 already exist in `DIR`; `--csv-cache-resync` does not touch them).
@@ -231,8 +232,10 @@ Override with `JAVA_OPTS="-Dscalawiki.write.maxConcurrent=8"` if needed.
 `scripts/server/wlx-daily.sh` is a cron wrapper that publishes every WLM Ukraine
 report kept up to date in one run: regional statistics (with the hromada
 breakdown), special nominations, RecentlyTaken, objects pictured by uploader,
-most photographed objects, and the bad / missing ids pages of every year
-(`--csv-cache-resync` picks up ids fixed in older years). Before October it
+most photographed objects, and the bad / missing ids pages of every year.
+Past years are re-checked against the wiki once a week
+(`--csv-cache-resync --csv-cache-resync-interval 7`), which picks up ids fixed
+in older files; the current year on every run. Before October it
 reports on the previous year's contest. It runs one job at a time (`flock`),
 lets the kernel kill it first if memory runs out, keeps a dated log under
 `logs/`, and prints only on failure, so cron's mail reports just the failures.

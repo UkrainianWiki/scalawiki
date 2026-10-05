@@ -12,8 +12,9 @@ import org.scalawiki.wlx.{ImageCsvExporter, ImageCsvImporter, ImageDB, MonumentD
 import org.slf4j.LoggerFactory
 
 import java.io.{File, FileNotFoundException}
+import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
-import java.time.{ZoneOffset, ZonedDateTime}
+import java.time.{LocalDate, ZoneOffset, ZonedDateTime}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -41,7 +42,8 @@ import scala.util.Try
   *   permanent record of year N.
   * - past contest years and the all-images CSV are frozen (read verbatim) unless
   *   `--csv-cache-resync` is given, which runs the same new/changed/deleted sweep
-  *   against them. For rows written before the `last_revid` column existed we
+  *   against them (with `--csv-cache-resync-interval N`, at most every N
+  *   days). For rows written before the `last_revid` column existed we
   *   have no revid to compare, so a change is assumed only when the live
   *   revision post-dates the moment the CSV was last written (its file mtime).
   *   A resynced past year stays slim: a year the sweep finds unchanged is not
@@ -82,7 +84,41 @@ class ImageDbProvider(
   private val csvAutoCache: Boolean = config.csvCache && csvStrictDir.isEmpty
   private val csvDir: String = config.effectiveCsvCacheDir
   private val csvRefresh: Boolean = config.csvCacheRefresh && csvAutoCache
-  private val csvResync: Boolean = config.csvCacheResync && csvAutoCache && !csvRefresh
+
+  /** Where the date of the last completed `--csv-cache-resync` is kept, for
+    * `--csv-cache-resync-interval`. */
+  private val resyncDateFile = Paths.get(csvDir, s"${contest.campaign}-resync.date")
+
+  private val today = LocalDate.now
+
+  private def lastResync: Option[LocalDate] =
+    Try(LocalDate.parse(new String(Files.readAllBytes(resyncDateFile), StandardCharsets.UTF_8).trim)).toOption
+
+  /** With `--csv-cache-resync-interval N`, a resync is due when none has
+    * completed in the last N days (by calendar date, so a daily run at a fixed
+    * hour resyncs every Nth day). */
+  private def resyncDue: Boolean =
+    config.csvCacheResyncIntervalDays.forall { days =>
+      val last = lastResync
+      val due = last.forall(date => !date.isAfter(today.minusDays(days.toLong)))
+      if (!due)
+        logger.info(
+          s"[csv-cache] past years resynced on ${last.get}, less than $days day(s) ago; not resyncing them this run"
+        )
+      due
+    }
+
+  private val csvResync: Boolean =
+    config.csvCacheResync && csvAutoCache && !csvRefresh && resyncDue
+
+  /** Record that this run's resync completed, so `--csv-cache-resync-interval`
+    * counts from today. Call once every image DB has been built. */
+  def resyncCompleted(): Unit =
+    if (csvResync)
+      Try {
+        Files.createDirectories(resyncDateFile.getParent)
+        Files.write(resyncDateFile, today.toString.getBytes(StandardCharsets.UTF_8))
+      }.failed.foreach(e => logger.warn(s"[csv-cache] could not record the resync date in $resyncDateFile: $e"))
 
   /** Shared by every CSV read this run, so a value repeated across files (an
     * author, a category) is held once. */

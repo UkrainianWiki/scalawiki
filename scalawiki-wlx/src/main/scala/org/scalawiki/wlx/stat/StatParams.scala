@@ -40,6 +40,7 @@ case class StatConfig(
     csvCacheDir: String = "csv-cache",
     csvCacheRefresh: Boolean = false,
     csvCacheResync: Boolean = false,
+    csvCacheResyncIntervalDays: Option[Int] = None,
     monumentCacheRefresh: Boolean = false,
     verbose: Boolean = false,
     progress: Boolean = true,
@@ -155,6 +156,8 @@ class StatParams(arguments: Seq[String]) extends ScallopConf(arguments) {
     opt[Boolean](name = "csv-cache-refresh", descr = "Ignore existing image CSV caches this run: refetch from the wiki and overwrite them.")
   val csvCacheResync =
     opt[Boolean](name = "csv-cache-resync", descr = "Re-check cached images (past years + all-images) against the wiki via a cheap id+revision sweep: refetch only rows whose file page changed since caching, drop deleted/de-categorised ones. The current year's cache always does this.")
+  val csvCacheResyncInterval =
+    opt[Int](name = "csv-cache-resync-interval", descr = "With --csv-cache-resync: skip the past-year resync when the last one that completed was less than this many days ago (dates kept in <csv-cache-dir>/<campaign>-resync.date). The current year is synced on every run regardless.")
   val monumentCacheRefresh =
     opt[Boolean](name = "monument-cache-refresh", descr = "Ignore the cached monument lists (csv-cache/<campaign>-monuments.csv) this run: refetch every list page from the wiki and overwrite the cache. Without this the cache is kept and only pages whose revision changed are refetched.")
   val verbose =
@@ -215,6 +218,7 @@ object StatParams {
       csvCacheDir = conf.csvCacheDir.getOrElse("csv-cache"),
       csvCacheRefresh = conf.csvCacheRefresh.getOrElse(false),
       csvCacheResync = conf.csvCacheResync.getOrElse(false),
+      csvCacheResyncIntervalDays = conf.csvCacheResyncInterval.toOption,
       monumentCacheRefresh = conf.monumentCacheRefresh.getOrElse(false),
       verbose = conf.verbose.getOrElse(false),
       progress = !conf.noProgress.getOrElse(false),

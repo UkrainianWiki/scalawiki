@@ -9,7 +9,8 @@
 #   - <year>/Number of objects pictured by uploader
 #   - Most photographed objects (all years + by region)
 #   - <year>/Images with bad ids and /Images with missing ids, for every year
-#     (--csv-cache-resync picks up ids fixed in older years' files)
+#     (a weekly --csv-cache-resync picks up ids fixed in older years' files;
+#     the current year is synced with the wiki on every run)
 #
 # Expects, next to this script (see "Running on a server" in RUNNING.md):
 #   run-stats.sh         from the repo root
@@ -73,7 +74,7 @@ nice -n 10 ionice -c3 "$base/run-stats.sh" \
   --authors-stat \
   --most-popular-monuments \
   --wrong-ids --missing-ids \
-  --csv-cache-resync \
+  --csv-cache-resync --csv-cache-resync-interval 7 \
   --no-progress \
   "$@" > "$log" 2>&1
 status=$?

@@ -75,6 +75,7 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       csvCache: Boolean = true,
       csvCacheRefresh: Boolean = false,
       csvCacheResync: Boolean = false,
+      csvCacheResyncIntervalDays: Option[Int] = None,
       imagesFromCsv: Option[String] = None,
       exportImagesCsv: Option[String] = None
   ): Statistics = {
@@ -88,6 +89,7 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       csvCache = csvCache,
       csvCacheRefresh = csvCacheRefresh,
       csvCacheResync = csvCacheResync,
+      csvCacheResyncIntervalDays = csvCacheResyncIntervalDays,
       imagesFromCsv = imagesFromCsv,
       exportImagesCsv = exportImagesCsv
     )
@@ -272,6 +274,38 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       val rewritten = ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2015).toString)
       rewritten.find(_.title == "File:Keep.jpg") must beSome(kept)
       rewritten.find(_.title == "File:Edited-v2.jpg").flatMap(_.url) must_== edited.url
+    }
+
+    "with --csv-cache-resync-interval: resync only when the last resync is that many days old" in {
+      val dir = cacheDir()
+      ImageCsvExporter.export(
+        new ImageDB(prevContest, Seq(img("File:P.jpg", 1L, revId = Some(100L))), None),
+        campaign, isCurrent = false, dir.toString)
+      val dateFile = dir.resolve(s"$campaign-resync.date")
+      val today = java.time.LocalDate.now
+
+      def run(): ImageQuery = {
+        val q = newImageQuery()
+        q.imagesFromCategory(contest) returns Future.successful(Nil)
+        q.imageIdsFromCategory(prevContest) returns Future.successful(Seq(rev(1L, 100L)))
+        stats(dir, q, startYear = Some(2015), csvCacheResync = true, csvCacheResyncIntervalDays = Some(7))
+          .gatherData(total = false).await
+        q
+      }
+
+      // never resynced: due, and the date is recorded
+      there was one(run()).imageIdsFromCategory(prevContest)
+      new String(Files.readAllBytes(dateFile)).trim must_== today.toString
+
+      // resynced 6 days ago: not due
+      Files.write(dateFile, today.minusDays(6).toString.getBytes)
+      there was no(run()).imageIdsFromCategory(prevContest)
+      new String(Files.readAllBytes(dateFile)).trim must_== today.minusDays(6).toString
+
+      // 7 days ago: due again
+      Files.write(dateFile, today.minusDays(7).toString.getBytes)
+      there was one(run()).imageIdsFromCategory(prevContest)
+      new String(Files.readAllBytes(dateFile)).trim must_== today.toString
     }
 
     "with --csv-cache-resync: migrate a row with no revid using the upload-window end" in {

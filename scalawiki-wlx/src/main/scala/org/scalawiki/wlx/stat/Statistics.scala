@@ -154,6 +154,7 @@ class Statistics(
       totalPageRevs <- totalPageRevsFuture
       totalImages <- imageProvider.total(monumentDb, byYear, totalPageRevs, total)
     } yield {
+      imageProvider.resyncCompleted()
       ContestStat(
         contest,
         startYear.getOrElse(contest.year),
