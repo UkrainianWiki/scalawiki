@@ -112,6 +112,11 @@ object ImageCsvImporter {
     )
   }
 
+  /** A cached row's last known revision, for diffing against a live revision
+    * sweep: its revid, and - only for a row with none (written before the
+    * `last_revid` column) - its revision timestamp. */
+  final case class CachedRevision(revId: Option[Long], revTs: Option[ZonedDateTime])
+
   def rowToImage(row: Map[String, String]): Image = rowToImage(row, new ValuePool, slim = false)
 
   /** `slim` gives [[slim]]'s image; the columns it drops aren't parsed. */
@@ -186,6 +191,37 @@ object ImageCsvImporter {
       // Row by row: `allWithHeaders()` would hold every row's string map in
       // memory at once, on top of the images built from them.
       reader.iteratorWithHeaders.map(row => rowToImage(row, pool, slim)).filter(keep).toVector
+    } finally {
+      reader.close()
+    }
+  }
+
+  /** [[imagesFromCsv]] plus each row's [[CachedRevision]] by page id, read in the
+    * same pass: slim images drop their revision, but a resync still needs it to
+    * tell which rows changed.
+    */
+  def imagesWithRevisionsFromCsv(
+      path: String,
+      pool: ValuePool,
+      slim: Boolean
+  ): (Seq[Image], Map[Long, CachedRevision]) = {
+    val file = new File(path)
+    if (!file.exists()) return (Seq.empty, Map.empty)
+
+    val reader = CSVReader.open(file, "UTF-8")
+    try {
+      val revisions = Map.newBuilder[Long, CachedRevision]
+      val images = reader.iteratorWithHeaders.map { row =>
+        def col(name: String): String = row.getOrElse(name, "")
+        optLong(col("page_id")).foreach { pageId =>
+          val revId = optLong(col("last_revid"))
+          val revTs =
+            if (revId.isEmpty) optStr(col("last_revision_ts")).map(ZonedDateTime.parse) else None
+          revisions += pageId -> CachedRevision(revId, revTs)
+        }
+        rowToImage(row, pool, slim)
+      }.toVector
+      (images, revisions.result())
     } finally {
       reader.close()
     }

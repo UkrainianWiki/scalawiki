@@ -167,7 +167,7 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       there was no(q).imageIdsFromCategory(prevContest)
     }
 
-    "be loaded slim when read verbatim, but full with --csv-cache-resync or --export-images-csv" in {
+    "be loaded slim when read verbatim or resynced, but full with --export-images-csv" in {
       val dir = cacheDir()
       val full = img("File:P.jpg", 1L, revId = Some(100L)).copy(
         url = Some("https://upload.wikimedia.org/p.jpg"),
@@ -191,7 +191,7 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       slim.revId must beNone
       slim.categories must_== Set("Ineligible submissions for WLM 2015 in Ukraine")
 
-      pastImage(resync = true) must_== full
+      pastImage(resync = true) must_== slim
       pastImage(export = Some(cacheDir().toString)) must_== full
       // the cached CSV still has everything
       ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2015).toString) must_== Seq(full)
@@ -222,6 +222,56 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       data.imageDbByYear(2015).get.images.map(_.title).toSet must_==
         Set("File:Keep.jpg", "File:Edited-v2.jpg")
       there was one(q).imagesWithTemplateByIds(prevContest, Set(2L))
+    }
+
+    "with --csv-cache-resync: leave the CSV of an unchanged year as it is" in {
+      val dir = cacheDir()
+      ImageCsvExporter.export(
+        new ImageDB(prevContest, Seq(img("File:P.jpg", 1L, revId = Some(100L))), None),
+        campaign, isCurrent = false, dir.toString)
+      val csv = yearCsv(dir, 2015)
+      val writtenAt = java.nio.file.attribute.FileTime.fromMillis(0)
+      Files.setLastModifiedTime(csv, writtenAt)
+
+      val q = newImageQuery()
+      q.imagesFromCategory(contest) returns Future.successful(Nil)
+      q.imageIdsFromCategory(prevContest) returns Future.successful(Seq(rev(1L, 100L)))
+
+      val data = stats(dir, q, startYear = Some(2015), csvCacheResync = true)
+        .gatherData(total = false).await
+
+      data.imageDbByYear(2015).get.images.map(_.title) must_== Seq("File:P.jpg")
+      Files.getLastModifiedTime(csv) must_== writtenAt
+      there was no(q).imagesWithTemplateByIds(any[Contest], any[Set[Long]])
+    }
+
+    "with --csv-cache-resync: rewrite a changed year's CSV in full, but keep it slim in memory" in {
+      val dir = cacheDir()
+      val kept = img("File:Keep.jpg", 1L, revId = Some(100L)).copy(
+        url = Some("https://upload.wikimedia.org/keep.jpg"),
+        categories = Set("Some category")
+      )
+      ImageCsvExporter.export(
+        new ImageDB(prevContest, Seq(kept, img("File:Edited.jpg", 2L, revId = Some(200L))), None),
+        campaign, isCurrent = false, dir.toString)
+
+      val edited = img("File:Edited-v2.jpg", 2L, revId = Some(222L)).copy(url = Some("https://upload.wikimedia.org/e.jpg"))
+      val q = newImageQuery()
+      q.imagesFromCategory(contest) returns Future.successful(Nil)
+      q.imageIdsFromCategory(prevContest) returns Future.successful(Seq(rev(1L, 100L), rev(2L, 222L)))
+      q.imagesWithTemplateByIds(prevContest, Set(2L)) returns Future.successful(Seq(edited))
+
+      val data = stats(dir, q, startYear = Some(2015), csvCacheResync = true)
+        .gatherData(total = false).await
+
+      val images = data.imageDbByYear(2015).get.images
+      images.map(_.title).toSet must_== Set("File:Keep.jpg", "File:Edited-v2.jpg")
+      images.flatMap(_.url) must beEmpty
+      images.flatMap(_.revId) must beEmpty
+
+      val rewritten = ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2015).toString)
+      rewritten.find(_.title == "File:Keep.jpg") must beSome(kept)
+      rewritten.find(_.title == "File:Edited-v2.jpg").flatMap(_.url) must_== edited.url
     }
 
     "with --csv-cache-resync: migrate a row with no revid using the upload-window end" in {

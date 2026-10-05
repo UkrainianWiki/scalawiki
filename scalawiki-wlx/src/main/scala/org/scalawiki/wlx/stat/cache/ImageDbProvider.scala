@@ -7,6 +7,7 @@ import org.scalawiki.wlx.query.ImageQuery
 import org.scalawiki.wlx.query.ImageQuery.PageRevInfo
 import org.scalawiki.wlx.stat.StatConfig
 import org.scalawiki.wlx.stat.progress.Progress
+import org.scalawiki.wlx.ImageCsvImporter.CachedRevision
 import org.scalawiki.wlx.{ImageCsvExporter, ImageCsvImporter, ImageDB, MonumentDB}
 import org.slf4j.LoggerFactory
 
@@ -43,6 +44,9 @@ import scala.util.Try
   *   against them. For rows written before the `last_revid` column existed we
   *   have no revid to compare, so a change is assumed only when the live
   *   revision post-dates the moment the CSV was last written (its file mtime).
+  *   A resynced past year stays slim: a year the sweep finds unchanged is not
+  *   rewritten, and only a changed one is re-read in full to rewrite its CSV, so
+  *   a daily resync costs about the memory of a run without it.
   * - deletions are only trusted when the sweep looks complete: the number of
   *   ids it returned is checked against `categoryinfo.files` (and, failing that,
   *   against the cached row count). A short sweep (truncated pagination, a
@@ -85,9 +89,13 @@ class ImageDbProvider(
   private val valuePool = new ImageCsvImporter.ValuePool
 
   /** Past years' images are loaded slim (see `ImageCsvImporter.slim`) unless
-    * they may be written out: `--csv-cache-resync` rewrites their CSVs,
-    * `--export-images-csv` exports them. */
-  private val slimPastYears: Boolean = !csvResync && config.exportImagesCsv.isEmpty
+    * `--export-images-csv` exports them. A `--csv-cache-resync` that changes a
+    * year re-reads that year's CSV in full to rewrite it (see [[SlimRows]]). */
+  private val slimPastYears: Boolean = config.exportImagesCsv.isEmpty
+
+  /** Slim cached rows being synced: their revisions (which slim images drop),
+    * and how to re-read them in full when the CSV has to be rewritten. */
+  private case class SlimRows(revisions: Map[Long, CachedRevision], readFull: () => Seq[Image])
 
   /** When the CSV at `path` was last written — the instant the cache was known
     * accurate. Used as the "changed since" cut-off for rows that predate the
@@ -212,11 +220,22 @@ class ImageDbProvider(
           new ImageDB(yearContest, imagesFromCsvOpt(year).getOrElse(Nil), monumentDb, config.minMpx)
         )
       case None if csvAutoCache && !csvRefresh && usableCacheCsv(path) =>
-        val cached = ImageCsvImporter.imagesFromCsv(path, pool = valuePool, slim = slimPastYears)
-        if (!csvResync)
+        if (!csvResync) {
+          val cached = ImageCsvImporter.imagesFromCsv(path, pool = valuePool, slim = slimPastYears)
           Future.successful(new ImageDB(yearContest, cached, monumentDb, config.minMpx))
-        else
-          syncYearFromCategory(yearContest, monumentDb, cached, path)
+        } else if (slimPastYears) {
+          val (cached, revisions) =
+            ImageCsvImporter.imagesWithRevisionsFromCsv(path, valuePool, slim = true)
+          // a fresh pool: the shared one would keep every full category set alive
+          val readFull = () => ImageCsvImporter.imagesFromCsv(path, pool = new ImageCsvImporter.ValuePool)
+          syncYearFromCategory(yearContest, monumentDb, cached, path, Some(SlimRows(revisions, readFull)))
+        } else
+          syncYearFromCategory(
+            yearContest,
+            monumentDb,
+            ImageCsvImporter.imagesFromCsv(path, pool = valuePool),
+            path
+          )
       case None =>
         fetchImageDb(yearContest, monumentDb).map { db =>
           writeCsvCache(db)
@@ -248,7 +267,8 @@ class ImageDbProvider(
       yearContest: Contest,
       monumentDb: Some[MonumentDB],
       cached: Seq[Image],
-      path: String
+      path: String,
+      slimRows: Option[SlimRows] = None
   ): Future[ImageDB] = {
     val query = imageQuery.getOrElse(liveImageQuery)
     // "changed since" cut-off for pre-last_revid rows: once a past year's upload
@@ -270,10 +290,11 @@ class ImageDbProvider(
         cached,
         writeCsvCache,
         liveRevs,
-        _ => cutoff,
+        cutoff,
         ids => query.imagesWithTemplateByIds(yearContest, ids),
         sweepComplete =
-          sweepLooksComplete(liveRevs.size, cached.count(_.pageId.isDefined), expectedFiles)
+          sweepLooksComplete(liveRevs.size, cached.count(_.pageId.isDefined), expectedFiles),
+        slimRows = slimRows
       )
     } yield db
   }
@@ -287,11 +308,18 @@ class ImageDbProvider(
     *
     * "changed" is a `revId` mismatch when both the cached row and the sweep entry
     * expose one; for rows written before the column existed (no cached revid) it
-    * is the live revision timestamp being after `fallbackTs(row)`. A sweep entry
-    * with no revid (revision-deleted current revision) is treated as unchanged.
+    * is the live revision timestamp being after the row's own timestamp, or
+    * `fallbackTs` when it has none. A sweep entry with no revid
+    * (revision-deleted current revision) is treated as unchanged.
     *
     * `extraImages` are appended unconditionally (e.g. uk.wikipedia-hosted images
     * for the all-images CSV, which live in a different page-id space).
+    *
+    * With `slimRows`, `cached` are slim images: the diff runs on
+    * `slimRows.revisions`, and when it finds nothing to change (no new, changed or
+    * gone row, no revid to backfill) the slim rows are returned and the CSV is not
+    * rewritten. Otherwise the rows are re-read in full, synced and written as
+    * usual, and the result is slimmed.
     */
   private def syncImageDb(
       yearContest: Contest,
@@ -299,76 +327,93 @@ class ImageDbProvider(
       cached: Seq[Image],
       writeCache: ImageDB => Unit,
       liveRevs: Seq[PageRevInfo],
-      fallbackTs: Image => ZonedDateTime,
+      fallbackTs: ZonedDateTime,
       fetch: Set[Long] => Future[Iterable[Image]],
       extraImages: Iterable[Image] = Nil,
-      sweepComplete: Boolean = true
+      sweepComplete: Boolean = true,
+      slimRows: Option[SlimRows] = None
   ): Future[ImageDB] = {
     val liveById = liveRevs.iterator.map(r => r.pageId -> r).toMap
-    val cachedById = cached.iterator.flatMap(i => i.pageId.map(_ -> i)).toMap
+    val cachedRevs: Map[Long, CachedRevision] = slimRows
+      .map(_.revisions)
+      .getOrElse(cached.iterator.flatMap(i => i.pageId.map(_ -> CachedRevision(i.revId, i.revTs))).toMap)
 
-    val newIds = liveById.keySet -- cachedById.keySet
-    val changedIds = (liveById.keySet intersect cachedById.keySet).filter { id =>
+    val newIds = liveById.keySet -- cachedRevs.keySet
+    val changedIds = (liveById.keySet intersect cachedRevs.keySet).filter { id =>
       val live = liveById(id)
-      val row = cachedById(id)
+      val row = cachedRevs(id)
       (row.revId, live.revId) match {
         case (Some(cachedRev), Some(liveRev)) => cachedRev != liveRev
         case (Some(_), None)                  => false // revdel'd sweep entry: can't tell, keep
         case (None, _) =>
-          live.timestamp.exists(_.isAfter(row.revTs.getOrElse(fallbackTs(row))))
+          live.timestamp.exists(_.isAfter(row.revTs.getOrElse(fallbackTs)))
       }
     }
     val refetch = newIds ++ changedIds
 
     val goneIds =
-      if (sweepComplete) cachedById.keySet -- liveById.keySet
+      if (sweepComplete) cachedRevs.keySet -- liveById.keySet
       else {
-        val missing = cachedById.keySet -- liveById.keySet
+        val missing = cachedRevs.keySet -- liveById.keySet
         if (missing.nonEmpty)
           logger.warn(
             s"[csv-cache] ${yearContest.year}: sweep returned ${liveById.size} ids for " +
-              s"${cachedById.size} cached rows — treating it as incomplete, keeping " +
+              s"${cachedRevs.size} cached rows — treating it as incomplete, keeping " +
               s"${missing.size} unmatched row(s) instead of deleting them"
           )
         Set.empty[Long]
       }
 
-    def backfill(i: Image): Image =
-      i.pageId.flatMap(liveById.get) match {
-        case Some(live) =>
-          i.copy(revId = live.revId.orElse(i.revId), revTs = live.timestamp.orElse(i.revTs))
-        case None => i
-      }
-
-    val kept = cached.collect {
-      case i
-          if i.pageId.exists(id => !refetch.contains(id) && !goneIds.contains(id)) ||
-            i.pageId.isEmpty =>
-        backfill(i)
+    // rows written before the last_revid column whose revid the sweep can fill in
+    def backfillable: Boolean = cachedRevs.exists { case (id, row) =>
+      row.revId.isEmpty && liveById.get(id).exists(_.revId.isDefined)
     }
 
-    val fetchedFuture =
-      if (refetch.isEmpty) Future.successful(Iterable.empty[Image]) else fetch(refetch)
-    fetchedFuture.map { fetched =>
-      val fetchedIds = fetched.flatMap(_.pageId).toSet
-      // A partial refetch (transient error resolving some ids) must not silently
-      // drop a row we still know about: fall back to the stale cached copy.
-      val missedRefetch = refetch -- fetchedIds
-      val staleKept = cached.filter(_.pageId.exists(id => missedRefetch.contains(id) && !newIds.contains(id)))
-      if (missedRefetch.nonEmpty)
-        logger.warn(
-          s"[csv-cache] ${yearContest.year}: refetch returned ${fetchedIds.size}/${refetch.size} " +
-            s"images; keeping ${staleKept.size} stale row(s), ${(missedRefetch -- staleKept.flatMap(_.pageId).toSet).size} new id(s) lost this run"
-        )
+    if (slimRows.isDefined && refetch.isEmpty && goneIds.isEmpty && !backfillable) {
+      logger.info(s"[csv-cache] ${yearContest.year}: unchanged since cached, not rewriting it")
+      Future.successful(new ImageDB(yearContest, cached, monumentDb, config.minMpx))
+    } else {
+      def backfill(i: Image): Image =
+        i.pageId.flatMap(liveById.get) match {
+          case Some(live) =>
+            i.copy(revId = live.revId.orElse(i.revId), revTs = live.timestamp.orElse(i.revTs))
+          case None => i
+        }
 
-      val db = new ImageDB(
-        yearContest,
-        dedupByPageId(kept ++ fetched ++ staleKept ++ extraImages),
-        monumentDb,
-        config.minMpx
-      )
-      writeCache(db)
-      db
+      val fetchedFuture =
+        if (refetch.isEmpty) Future.successful(Iterable.empty[Image]) else fetch(refetch)
+      fetchedFuture.map { fetched =>
+        // slim rows can't be written back: re-read them in full, only now that
+        // the fetch is done, so they aren't held during it
+        val rows = slimRows.fold(cached)(_.readFull())
+        val kept = rows.collect {
+          case i
+              if i.pageId.exists(id => !refetch.contains(id) && !goneIds.contains(id)) ||
+                i.pageId.isEmpty =>
+            backfill(i)
+        }
+
+        val fetchedIds = fetched.flatMap(_.pageId).toSet
+        // A partial refetch (transient error resolving some ids) must not silently
+        // drop a row we still know about: fall back to the stale cached copy.
+        val missedRefetch = refetch -- fetchedIds
+        val staleKept = rows.filter(_.pageId.exists(id => missedRefetch.contains(id) && !newIds.contains(id)))
+        if (missedRefetch.nonEmpty)
+          logger.warn(
+            s"[csv-cache] ${yearContest.year}: refetch returned ${fetchedIds.size}/${refetch.size} " +
+              s"images; keeping ${staleKept.size} stale row(s), ${(missedRefetch -- staleKept.flatMap(_.pageId).toSet).size} new id(s) lost this run"
+          )
+
+        val db = new ImageDB(
+          yearContest,
+          dedupByPageId(kept ++ fetched ++ staleKept ++ extraImages),
+          monumentDb,
+          config.minMpx
+        )
+        writeCache(db)
+        if (slimRows.isDefined) db.copy(images = db.images.map(ImageCsvImporter.slim(_, valuePool)).toVector)
+        else db
+      }
     }
   }
 
@@ -429,7 +474,7 @@ class ImageDbProvider(
         cachedCommons,
         writeTotalCsvCache,
         commonsRevs,
-        _ => writtenAt,
+        writtenAt,
         ids => query.imagesWithTemplateByIds(contest, ids),
         extraImages = wiki,
         sweepComplete = wikiFetchTrustworthy &&
