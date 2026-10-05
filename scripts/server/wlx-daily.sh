@@ -36,10 +36,17 @@ fi
 # the jury tool or the database (raising one's own score needs no root).
 echo 1000 > "/proc/$$/oom_score_adj" 2>/dev/null || true
 
-set -a
-# shellcheck disable=SC1091
-. "$base/secrets.env"
-set +a
+if [[ -f "$base/secrets.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  . "$base/secrets.env"
+  set +a
+fi
+# Without a login the edits would go out anonymously, under the server's IP.
+if [[ -z "${SCALAWIKI_LOGIN:-}" || -z "${SCALAWIKI_PASSWORD:-}" ]] && [[ " $* " != *" --dry-run "* ]]; then
+  echo "wlx-daily: no SCALAWIKI_LOGIN / SCALAWIKI_PASSWORD (in $base/secrets.env); refusing to publish" >&2
+  exit 1
+fi
 
 # The Ukrainian contest uploads run through October: from October report on
 # this year's contest, before it on last year's (no empty next-year pages).
