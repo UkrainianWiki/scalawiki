@@ -1,6 +1,7 @@
 package org.scalawiki.wlx.dto
 
 import com.typesafe.config.{Config, ConfigFactory}
+import org.scalawiki.dto.Image
 import org.scalawiki.wlx.query.MonumentQuery
 import net.ceedubs.ficus.Ficus._
 import org.scalawiki.wlx.MonumentDB
@@ -20,6 +21,11 @@ import scala.util.Try
   * @param pages
   *   pages that contain lists of monuments, ot templates that contains links to
   *   these pages
+  * @param fileTemplate
+  *   template on the file page that enters a file into the nomination
+  * @param mediaType
+  *   kind of file the nomination takes, whatever its monument: only
+  *   [[SpecialNomination.Video]] is supported
   */
 case class SpecialNomination(
     name: String,
@@ -27,12 +33,25 @@ case class SpecialNomination(
     pages: Seq[String],
     years: Seq[Int] = Nil,
     cities: Seq[AdmDivision] = Nil,
-    fileTemplate: Option[String] = None
-)
+    fileTemplate: Option[String] = None,
+    mediaType: Option[String] = None
+) {
+
+  /** Whether the file itself places `image` in this nomination - by its
+    * [[fileTemplate]] or its [[mediaType]] - rather than its monument. */
+  def matchesFile(image: Image): Boolean =
+    fileTemplate.exists(image.specialNominations.contains) ||
+      (mediaType.contains(SpecialNomination.Video) && image.isVideo)
+}
 
 object SpecialNomination {
 
   import scala.collection.JavaConverters._
+
+  /** [[SpecialNomination.mediaType]] of a nomination for videos. */
+  val Video = "video"
+
+  private val mediaTypes = Set(Video)
 
   def load(name: String): Seq[SpecialNomination] = {
     fromConfig(ConfigFactory.load(name))
@@ -59,7 +78,15 @@ object SpecialNomination {
               lookupCity(name, code).head
             }
           } else Nil,
-          c.as[Option[String]]("fileTemplate")
+          c.as[Option[String]]("fileTemplate"),
+          c.as[Option[String]]("mediaType").map { mediaType =>
+            require(
+              mediaTypes.contains(mediaType),
+              s"Unknown mediaType '$mediaType' of special nomination ${c.getString("name")}, " +
+                s"expected one of ${mediaTypes.mkString(", ")}"
+            )
+            mediaType
+          }
         )
       })
       .getOrElse(Seq.empty)

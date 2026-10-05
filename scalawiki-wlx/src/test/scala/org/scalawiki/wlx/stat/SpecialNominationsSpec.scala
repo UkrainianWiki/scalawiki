@@ -1,5 +1,7 @@
 package org.scalawiki.wlx.stat
 
+import com.typesafe.config.ConfigFactory
+import org.scalawiki.dto.Image
 import org.scalawiki.wlx.dto.SpecialNomination
 import org.specs2.mutable.Specification
 
@@ -116,6 +118,31 @@ class SpecialNominationsSpec extends Specification {
         .map(_.copy(cities = Nil))
         .filterNot(sn => sn.years.nonEmpty && sn.years.min >= 2022)
         .map(sn => sn.copy(years = sn.years.filterNot(_ >= 2022))) === expected
+    }
+
+    "load the video nomination" in {
+      SpecialNomination.load("wlm_ua.conf").find(_.name == "Відео").map(sn => (sn.mediaType, sn.years)) ===
+        Some((Some(SpecialNomination.Video), Seq(2024, 2025, 2026)))
+    }
+
+    "reject an unknown media type" in {
+      val config = ConfigFactory.parseString("""nominations: [{name: "Аудіо", mediaType: "audio"}]""")
+      SpecialNomination.fromConfig(config) must throwA[IllegalArgumentException]
+    }
+  }
+
+  "matchesFile" should {
+    val video = SpecialNomination("Відео", None, Nil, mediaType = Some(SpecialNomination.Video))
+    val film = SpecialNomination("Плівка", None, Nil, fileTemplate = Some("WLM2026-UA-film"))
+
+    "take any video for a video nomination" in {
+      video.matchesFile(Image("File:Church.ogv", mediaType = Some("VIDEO"))) must beTrue
+      video.matchesFile(Image("File:Church.jpg", mediaType = Some("BITMAP"))) must beFalse
+    }
+
+    "take files with the nomination's file template" in {
+      film.matchesFile(Image("File:Church.jpg", specialNominations = Set("WLM2026-UA-film"))) must beTrue
+      film.matchesFile(Image("File:Church.webm", mediaType = Some("VIDEO"))) must beFalse
     }
   }
 }

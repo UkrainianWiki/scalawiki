@@ -1,5 +1,6 @@
 package org.scalawiki.wlx.stat
 
+import com.github.tototoshi.csv.{CSVReader, CSVWriter}
 import org.scalawiki.MwBot
 import org.scalawiki.dto.Image
 import org.scalawiki.wlx.dto.{Contest, Monument}
@@ -45,6 +46,15 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
 
   private def rowCount(p: Path): Int =
     ImageCsvImporter.imagesFromCsv(p.toString).size
+
+  /** Rewrite the CSV at `p` as an older version wrote it: without `column`. */
+  private def dropColumn(p: Path, column: String): Unit = {
+    val reader = CSVReader.open(p.toFile, "UTF-8")
+    val rows = try reader.all() finally reader.close()
+    val index = rows.head.indexOf(column)
+    val writer = CSVWriter.open(p.toFile, "UTF-8")
+    try writer.writeAll(rows.map(_.patch(index, Nil, 1))) finally writer.close()
+  }
 
   private def newImageQuery(): ImageQuery = {
     val q = mock[ImageQuery]
@@ -123,6 +133,24 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
 
       data.imageDbByYear(2015).map(_.images.map(_.title).toSeq) must beSome(Seq("File:Fresh.jpg"))
       ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2015).toString).map(_.title) must_== Seq("File:Fresh.jpg")
+    }
+
+    "be refetched and rewritten when its CSV predates a column (media_type)" in {
+      val dir = cacheDir()
+      ImageCsvExporter.export(new ImageDB(prevContest, Seq(img("File:Old.webm", 1L)), None), campaign,
+        isCurrent = false, dir.toString)
+      dropColumn(yearCsv(dir, 2015), "media_type")
+
+      val q = newImageQuery()
+      q.imagesFromCategory(prevContest) returns
+        Future.successful(Seq(img("File:Old.webm", 1L).copy(mediaType = Some("VIDEO"))))
+      q.imagesFromCategory(contest) returns Future.successful(Nil)
+
+      val data = stats(dir, q, startYear = Some(2015)).gatherData(total = false).await
+
+      data.imageDbByYear(2015).map(_.images.flatMap(_.mediaType).toSeq) must beSome(Seq("VIDEO"))
+      ImageCsvImporter.hasCurrentColumns(yearCsv(dir, 2015).toString) must beTrue
+      ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2015).toString).flatMap(_.mediaType) must_== Seq("VIDEO")
     }
 
     "be read verbatim (no wiki sweep) without --csv-cache-resync" in {

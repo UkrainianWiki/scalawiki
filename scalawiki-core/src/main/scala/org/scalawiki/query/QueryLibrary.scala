@@ -20,27 +20,32 @@ trait QueryLibrary {
       generator: Generator,
       withUrl: Boolean = false,
       withMetadata: Boolean = false,
-      rvSlots: Option[String] = None
-  ): Action = imagesQuery(generator, withUrl, withMetadata, rvSlots)
+      rvSlots: Option[String] = None,
+      withMediaType: Boolean = false
+  ): Action = imagesQuery(generator, withUrl, withMetadata, rvSlots, withMediaType)
 
   def imagesByIds(
       pageIds: Seq[Long],
       withUrl: Boolean = false,
       withMetadata: Boolean = false,
-      rvSlots: Option[String] = None
-  ): Action = imagesQuery(PageIdsParam(pageIds), withUrl, withMetadata, rvSlots)
+      rvSlots: Option[String] = None,
+      withMediaType: Boolean = false
+  ): Action = imagesQuery(PageIdsParam(pageIds), withUrl, withMetadata, rvSlots, withMediaType)
 
+  /** @param withMediaType also request each file's MediaWiki media type */
   def imagesQuery(
       queryParam: QueryParam[_],
       withUrl: Boolean = false,
       withMetadata: Boolean = false,
-      rvSlots: Option[String] = None
+      rvSlots: Option[String] = None,
+      withMediaType: Boolean = false
   ): Action = {
     import org.scalawiki.dto.cmd.query.prop._
 
     val iiProps = Seq(Timestamp, iiprop.User, iiprop.Size) ++
       (if (withUrl) Seq(iiprop.Url) else Seq.empty) ++
-      (if (withMetadata) Seq(iiprop.Metadata) else Seq.empty)
+      (if (withMetadata) Seq(iiprop.Metadata) else Seq.empty) ++
+      (if (withMediaType) Seq(iiprop.MediaType) else Seq.empty)
 
     Action(
       Query(

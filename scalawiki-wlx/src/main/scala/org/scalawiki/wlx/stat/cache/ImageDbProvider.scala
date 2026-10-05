@@ -49,6 +49,9 @@ import scala.util.Try
   *   transient API hiccup) keeps every cached row rather than wiping the CSV.
   * - delete a CSV to force a full refetch (clearing only `http-cache/` does
   *   nothing, the CSV short-circuits before the request cache is consulted).
+  * - a CSV missing a column the exporter now writes (e.g. `media_type`) was
+  *   written by an older version: it is refetched and rewritten as if absent,
+  *   past years included.
   * - `--csv-cache-refresh` ignores existing CSVs and overwrites them.
   */
 class ImageDbProvider(
@@ -110,15 +113,27 @@ class ImageDbProvider(
   private def yearCsvPath(year: Int): String =
     ImageCsvExporter.filename(contest.campaign, year, isCurrent = false, csvDir)
 
+  /** Whether the auto-cache CSV at `path` can be read: it exists and has every
+    * current column (see the class doc). */
+  private def usableCacheCsv(path: String): Boolean =
+    new File(path).exists() && {
+      val current = ImageCsvImporter.hasCurrentColumns(path)
+      if (!current)
+        logger.info(s"[csv-cache] $path predates the current CSV columns; refetching it")
+      current
+    }
+
   private def totalCsvReadPath: Option[String] =
     csvStrictDir
       .map(dir => ImageCsvExporter.totalFilename(contest.campaign, dir))
       .orElse(if (csvAutoCache) Some(ImageCsvExporter.totalFilename(contest.campaign, csvDir)) else None)
 
   /** The all-images CSV to read this run, or `None` when it should be (re)fetched
-    * (`--csv-cache-refresh`, no file, or the cache is off). */
-  private def existingTotalCsvPath: Option[String] =
-    if (csvRefresh) None else totalCsvReadPath.filter(new File(_).exists())
+    * (`--csv-cache-refresh`, no usable file, or the cache is off). */
+  private lazy val existingTotalCsvPath: Option[String] =
+    if (csvRefresh) None
+    else if (csvStrictDir.isDefined) totalCsvReadPath.filter(new File(_).exists())
+    else totalCsvReadPath.filter(usableCacheCsv)
 
   private def writeCsvCache(imageDb: ImageDB): Unit =
     if (csvAutoCache)
@@ -196,7 +211,7 @@ class ImageDbProvider(
         Future.successful(
           new ImageDB(yearContest, imagesFromCsvOpt(year).getOrElse(Nil), monumentDb, config.minMpx)
         )
-      case None if csvAutoCache && !csvRefresh && new File(path).exists() =>
+      case None if csvAutoCache && !csvRefresh && usableCacheCsv(path) =>
         val cached = ImageCsvImporter.imagesFromCsv(path, pool = valuePool, slim = slimPastYears)
         if (!csvResync)
           Future.successful(new ImageDB(yearContest, cached, monumentDb, config.minMpx))
@@ -213,7 +228,7 @@ class ImageDbProvider(
 
   private def currentYearImages(monumentDb: Some[MonumentDB])(yearContest: Contest): Future[ImageDB] = {
     val path = yearCsvPath(yearContest.year)
-    if (csvAutoCache && !csvRefresh && new File(path).exists())
+    if (csvAutoCache && !csvRefresh && usableCacheCsv(path))
       syncYearFromCategory(yearContest, monumentDb, ImageCsvImporter.imagesFromCsv(path, pool = valuePool), path)
     else
       // Live, not through the `http-cache/` request cache: the current year's

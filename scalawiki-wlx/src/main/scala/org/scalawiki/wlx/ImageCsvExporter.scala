@@ -13,7 +13,7 @@ object ImageCsvExporter {
     "title", "author", "upload_date", "monument_id", "page_id",
     "width", "height", "size_bytes", "mime", "camera", "exif_date",
     "categories", "special_nominations", "url", "page_url",
-    "last_revid", "last_revision_ts"
+    "last_revid", "last_revision_ts", "media_type"
   )
 
   def imageToRow(image: Image): Map[String, String] = Map(
@@ -33,7 +33,8 @@ object ImageCsvExporter {
     "url"                 -> image.url.getOrElse(""),
     "page_url"            -> image.pageUrl.getOrElse(""),
     "last_revid"          -> image.revId.map(_.toString).getOrElse(""),
-    "last_revision_ts"    -> image.revTs.map(_.toString).getOrElse("")
+    "last_revision_ts"    -> image.revTs.map(_.toString).getOrElse(""),
+    "media_type"          -> image.mediaType.getOrElse("")
   )
 
   def filename(

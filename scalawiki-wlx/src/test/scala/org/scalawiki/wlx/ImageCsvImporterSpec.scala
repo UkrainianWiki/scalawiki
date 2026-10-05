@@ -25,6 +25,7 @@ class ImageCsvImporterSpec extends Specification {
     height = Some(2000),
     size = Some(1048576L),
     mime = Some("image/jpeg"),
+    mediaType = Some("BITMAP"),
     metadata = Some(
       ImageMetadata(
         Map("Model" -> "Canon EOS 5D", "DateTimeOriginal" -> "2022:09:15 10:30:00")
@@ -144,6 +145,28 @@ class ImageCsvImporterSpec extends Specification {
     }
   }
 
+  "ImageCsvImporter.hasCurrentColumns" should {
+
+    "accept a CSV the exporter writes now" in {
+      val dir = Files.createTempDirectory("image-csv-columns-spec")
+      ImageCsvExporter.export(new ImageDB(prevContest, Seq(fullImage), None), prevContest.campaign, isCurrent = false, dir.toString)
+      ImageCsvImporter.hasCurrentColumns(
+        ImageCsvExporter.filename(prevContest.campaign, prevContest.year, isCurrent = false, dir.toString)
+      ) must beTrue
+    }
+
+    "reject a CSV written before the media_type column" in {
+      val dir = Files.createTempDirectory("image-csv-columns-old-spec")
+      val path = dir.resolve("old.csv").toString
+      val w = new java.io.PrintWriter(path)
+      try {
+        w.println(ImageCsvExporter.columns.filterNot(_ == "media_type").mkString(","))
+        w.println("File:Old.jpg" + "," * (ImageCsvExporter.columns.size - 2))
+      } finally w.close()
+      ImageCsvImporter.hasCurrentColumns(path) must beFalse
+    }
+  }
+
   "slim images" should {
 
     val withEverything = fullImage.copy(
@@ -161,6 +184,7 @@ class ImageCsvImporterSpec extends Specification {
       width = withEverything.width,
       height = withEverything.height,
       size = withEverything.size,
+      mediaType = withEverything.mediaType,
       metadata = Some(ImageMetadata(Map("DateTimeOriginal" -> "2022:09:15 10:30:00"))),
       categories = Set("Ineligible submissions for WLM 2022 in Ukraine", "Church interiors in Kyiv"),
       specialNominations = withEverything.specialNominations

@@ -101,10 +101,13 @@ csv-cache/wlm-ua-all-images.csv    # all-time DB's images in no per-year CSV (th
 * **Past contest years and the all-images CSV** are frozen (read verbatim) unless
   `--csv-cache-resync` is given, which runs that same new/changed/deleted sweep
   against them. Deleting a CSV still forces a full refetch.
+* **A CSV written before a column was added** (e.g. `media_type`) is refetched
+  in full and rewritten, past years included, the first time a run reads it.
+  Expect the first run after such an upgrade to refetch every year.
 * **Past contest years are loaded slim** to save memory: only the fields their
   reports, ratings and eligibility checks read (title, author, monument ids,
-  sizes, special nominations, EXIF date — or the upload date when there is none —
-  and the ineligible/interior categories). URLs, camera, other categories and
+  sizes, special nominations, media type, EXIF date — or the upload date when
+  there is none — and the ineligible/interior categories). URLs, camera, other categories and
   revision ids are left out. They are loaded in full with `--csv-cache-resync`
   (which rewrites their CSVs) or `--export-images-csv`. The CSV files themselves
   always keep every column.

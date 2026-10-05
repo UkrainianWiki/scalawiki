@@ -46,6 +46,7 @@ case class Image(
     categories: Set[String] = Set.empty,
     specialNominations: Set[String] = Set.empty,
     mime: Option[String] = None,
+    mediaType: Option[String] = None,
     revId: Option[Long] = None,
     revTs: Option[ZonedDateTime] = None
 ) extends Ordered[Image] {
@@ -79,9 +80,27 @@ case class Image(
 
   def withMonument(monumentId: String): Image =
     this.copy(monumentIds = Seq(monumentId))
+
+  /** Whether the file is a video, see [[Image.isVideo(title* Image.isVideo]]. */
+  def isVideo: Boolean = Image.isVideo(title, mediaType)
 }
 
 object Image {
+
+  /** MediaWiki's `mediatype` for video files. */
+  val VideoMediaType = "VIDEO"
+
+  /** Video file extensions Commons accepts, for files with no media type. */
+  val videoExtensions: Seq[String] = Seq(".webm", ".ogv", ".mpg", ".mpeg")
+
+  /** Whether the file `title` is a video: by MediaWiki's `mediatype` when known
+    * (the MIME type can't tell - Ogg video and audio are both `application/ogg`),
+    * else by the file extension.
+    */
+  def isVideo(title: String, mediaType: Option[String]): Boolean =
+    mediaType
+      .map(_ == VideoMediaType)
+      .getOrElse(videoExtensions.exists(title.toLowerCase.endsWith))
 
   val categoryRegex = "\\[\\[Category:([^]]+)\\]\\]".r
 
@@ -200,7 +219,8 @@ object Image {
       pageUrl: Option[String],
       pageId: Option[Long],
       metadata: Option[Map[String, String]] = None,
-      mime: Option[String] = None
+      mime: Option[String] = None,
+      mediaType: Option[String] = None
   ) =
     new Image(
       title = title,
@@ -213,7 +233,8 @@ object Image {
       pageUrl = pageUrl,
       pageId = pageId,
       metadata = metadata.map(ImageMetadata.apply),
-      mime = mime
+      mime = mime,
+      mediaType = mediaType
     )
 
   def gallery(

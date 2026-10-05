@@ -179,6 +179,7 @@ object PropImageInfoSpec {
        |      "width": 3648,
        |      "height": 2736,
        |      "mime": "image/jpeg",
+       |      "mediatype": "BITMAP",
        |      "url": "https://upload.wikimedia.org/wikipedia/commons/e/ea/Dovbush-rocks_01.JPG",
        |      "descriptionurl": "https://commons.wikimedia.org/wiki/File:Dovbush-rocks_01.JPG"
        |    }]}}},
@@ -229,7 +230,7 @@ object PropImageInfoSpec {
           pageUrl = Some("https://commons.wikimedia.org/wiki/File:Dovbush-rocks_01.JPG"),
           pageId = Some(32885574)
         )
-        .copy(mime = Some("image/jpeg"))
+        .copy(mime = Some("image/jpeg"), mediaType = Some("BITMAP"))
     )
   )
 

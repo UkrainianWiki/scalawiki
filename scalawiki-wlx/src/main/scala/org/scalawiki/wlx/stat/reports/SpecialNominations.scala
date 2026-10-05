@@ -33,9 +33,7 @@ class SpecialNominations(stat: ContestStat, imageDb: ImageDB) {
           if (monumentsMap.get(nomination).exists(_.nonEmpty)) {
             imageDb.subSet(monumentsMap(nomination), withFalseIds = true)
           } else {
-            imageDb.subSet { i =>
-              nomination.fileTemplate.exists(i.specialNominations.contains)
-            }
+            imageDb.subSet(nomination.matchesFile _)
           }
         nomination -> specialNominationImageDb
       }.toMap

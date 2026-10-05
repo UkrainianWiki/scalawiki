@@ -108,8 +108,7 @@ class ImageQueryApi(bot: ActionBot) extends ImageQuery with QueryLibrary {
     val specialNominationTemplates = allSpecialNominationTemplates
     Future
       .sequence(pageIds.toSeq.sorted.grouped(blockSize).map { idsSlice =>
-        imagesByIds(idsSlice, withMetadata = true)
-        for (pages <- bot.run(imagesByIds(idsSlice, withMetadata = true)))
+        for (pages <- bot.run(imagesByIds(idsSlice, withMetadata = true, withMediaType = true)))
           yield {
             bot.log.info(s"Fetched ${fetched.addAndGet(pages.size)} of ${pageIds.size}")
             pages.flatMap(
@@ -122,7 +121,7 @@ class ImageQueryApi(bot: ActionBot) extends ImageQuery with QueryLibrary {
 
   private def imagesByGenerator(contest: Contest, generator: Generator): Future[Iterable[Image]] = {
     val specialNominationTemplates = allSpecialNominationTemplates
-    for (pages <- bot.run(imagesByGenerator(generator, withMetadata = true)))
+    for (pages <- bot.run(imagesByGenerator(generator, withMetadata = true, withMediaType = true)))
       yield pages.flatMap(
         Image.fromPage(contest.fileTemplate, specialNominationTemplates)
       )

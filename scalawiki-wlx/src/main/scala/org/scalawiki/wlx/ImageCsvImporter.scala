@@ -16,7 +16,7 @@ object ImageCsvImporter {
   private val exifDateKey = "DateTimeOriginal"
 
   /** Hands out one shared instance per distinct value, for the image fields that
-    * repeat across many images: authors, cameras, MIME types, category and
+    * repeat across many images: authors, cameras, MIME and media types, category and
     * special nomination names and sets, monument id lists, widths and heights.
     * One pool can serve several CSV files, so e.g. an author seen in several
     * contest years is held once. Unique fields (titles, dates, page ids) aren't
@@ -86,10 +86,11 @@ object ImageCsvImporter {
     * `--csv-cache-resync`), and what reads them - eligibility (`ImageDB`), list
     * filling (`ImageFiller.bestImage`), ratings and the all-years reports -
     * needs only the title, author, monument ids, page id, width, height, size,
-    * special nominations, the EXIF date (only `DateTimeOriginal` is kept), the
-    * upload date when there is no EXIF date (`OldPhotosBonus` falls back to it),
-    * and the ineligible-submission and interior categories. URLs, MIME type,
-    * uploader, camera, other categories and revision id/timestamp are dropped.
+    * special nominations, media type (the video special nomination), the EXIF
+    * date (only `DateTimeOriginal` is kept), the upload date when there is no
+    * EXIF date (`OldPhotosBonus` falls back to it), and the ineligible-submission
+    * and interior categories. URLs, MIME type, uploader, camera, other
+    * categories and revision id/timestamp are dropped.
     *
     * A slim image must never be written back to a CSV: the dropped fields would
     * be lost from the cache.
@@ -147,10 +148,23 @@ object ImageCsvImporter {
         else pool.stringSet(splitSet(col("categories"))),
       specialNominations = pool.stringSet(splitSet(col("special_nominations"))),
       mime = pool.stringOpt(optStr(col("mime"))),
+      mediaType = pool.stringOpt(optStr(col("media_type"))),
       revId = if (slim) None else optLong(col("last_revid")),
       revTs = if (slim) None else optStr(col("last_revision_ts")).map(ZonedDateTime.parse)
     )
     if (slim) this.slim(image, pool) else image
+  }
+
+  /** Whether the image CSV at `path` has every column [[ImageCsvExporter]] writes
+    * now. A file written before a column was added lacks it, and reading it
+    * would leave that field empty on every image. Reads only the header. */
+  def hasCurrentColumns(path: String): Boolean = {
+    val reader = CSVReader.open(new File(path), "UTF-8")
+    try {
+      reader.readNext().exists(header => ImageCsvExporter.columns.forall(header.contains))
+    } finally {
+      reader.close()
+    }
   }
 
   /** Images from an image CSV, or empty if the file doesn't exist. Rows whose

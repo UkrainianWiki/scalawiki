@@ -28,6 +28,7 @@ class ImageCsvExporterSpec extends Specification {
     height           = Some(2000),
     size             = Some(1048576L),
     mime             = Some("image/jpeg"),
+    mediaType        = Some("BITMAP"),
     metadata         = Some(ImageMetadata(Map(
       "Model"           -> "Canon EOS 5D",
       "DateTimeOriginal"-> "2022:09:15 10:30:00"
@@ -79,14 +80,14 @@ class ImageCsvExporterSpec extends Specification {
 
   "ImageCsvExporter.export" should {
 
-    "write all 17 expected header columns in the correct order" in {
+    "write all 18 expected header columns in the correct order" in {
       val content = exportAndRead(Seq(fullImage), prevContest, isCurrent = false)
       val header = parseCsv(content).head
       header must_== List(
         "title", "author", "upload_date", "monument_id", "page_id",
         "width", "height", "size_bytes", "mime", "camera", "exif_date",
         "categories", "special_nominations", "url", "page_url",
-        "last_revid", "last_revision_ts"
+        "last_revid", "last_revision_ts", "media_type"
       )
     }
 
@@ -106,6 +107,7 @@ class ImageCsvExporterSpec extends Specification {
       col("height")        must_== "2000"
       col("size_bytes")    must_== "1048576"
       col("mime")          must_== "image/jpeg"
+      col("media_type")    must_== "BITMAP"
       col("camera")        must_== "Canon EOS 5D"
       col("url")           must_== "https://upload.wikimedia.org/test.jpg"
       col("page_url")      must_== "https://commons.wikimedia.org/wiki/File:Test.jpg"

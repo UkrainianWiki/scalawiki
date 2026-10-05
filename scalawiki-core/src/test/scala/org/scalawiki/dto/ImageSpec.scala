@@ -26,6 +26,21 @@ class ImageSpec extends Specification {
 
   }
 
+  "isVideo" should {
+    "go by the media type" in {
+      Image("File:Church.ogv", mediaType = Some("VIDEO")).isVideo === true
+      Image("File:Bells.ogg", mediaType = Some("AUDIO")).isVideo === false
+      Image("File:Church.jpg", mediaType = Some("BITMAP")).isVideo === false
+    }
+
+    "fall back to the extension" in {
+      Image("File:Church.WEBM").isVideo === true
+      Image("File:Church.ogv").isVideo === true
+      Image("File:Bells.ogg").isVideo === false
+      Image("File:Church.jpg").isVideo === false
+    }
+  }
+
   "fromPageRevision" should {
     "parse author and id" in {
       val wiki = makeTemplate(
