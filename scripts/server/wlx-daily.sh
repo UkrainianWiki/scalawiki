@@ -54,7 +54,10 @@ find "$base/http-cache" -type f -mtime +14 -delete 2>/dev/null
 find "$base/logs" -name 'daily-*.txt' -mtime +30 -delete 2>/dev/null
 
 export SW_JAR="${SW_JAR:-$base/scalawiki-wlx.jar}"
-export JAVA_OPTS="${JAVA_OPTS:--Xmx800m}"
+# 1 GB heap: regional stat alone measured ~400 MB live (fits -Xmx700m); this run
+# does much more. Check the "Memory:" line in the log and adjust via JAVA_OPTS.
+# On an OutOfMemoryError exit (and so fail loudly) instead of limping on.
+export JAVA_OPTS="${JAVA_OPTS:--Xmx1g} -XX:+ExitOnOutOfMemoryError"
 
 nice -n 10 ionice -c3 "$base/run-stats.sh" \
   --campaign wlm-ua --start-year 2012 --year "$year" \

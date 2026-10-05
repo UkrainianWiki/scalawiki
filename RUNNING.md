@@ -260,7 +260,10 @@ MAILTO=you@example.org
 0 5 * * * $HOME/scalawiki/wlx-daily.sh
 ```
 
-`JAVA_OPTS` defaults to `-Xmx800m` there; check the run's `Memory:` line in the log.
+`JAVA_OPTS` defaults to `-Xmx1g` there (about 1.5 GB of RAM for the process),
+and the JVM exits on an `OutOfMemoryError` so the run fails visibly. Check the
+`Memory:` line in the log: if "max after GC" comes close to the limit, raise it
+in the crontab line, e.g. `JAVA_OPTS=-Xmx1500m $HOME/scalawiki/wlx-daily.sh`.
 
 ## Cyrillic prints as `?` on Windows
 
