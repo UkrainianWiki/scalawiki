@@ -261,9 +261,12 @@ the edit grants, so it can be revoked without touching other setups. Try it with
 
 ```
 MAILTO=you@example.org
-# 05:00 server time; mind the server's time zone
-0 5 * * * $HOME/scalawiki/wlx-daily.sh
+# cron uses the server's zone: on a Europe/Berlin server 23:00 = 00:00 Kyiv
+0 23 * * * $HOME/scalawiki/wlx-daily.sh
 ```
+
+The script itself runs on Kyiv time (`TZ=Europe/Kyiv`), so the contest year,
+the weekly resync date and the log names follow Kyiv's calendar day.
 
 `JAVA_OPTS` defaults to `-Xmx1g` there (about 1.5 GB of RAM for the process),
 and the JVM exits on an `OutOfMemoryError` so the run fails visibly. Check the

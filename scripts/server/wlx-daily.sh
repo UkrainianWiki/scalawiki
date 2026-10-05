@@ -23,6 +23,11 @@
 #
 set -uo pipefail
 
+# Kyiv time for everything below and for the JVM (contest year, the resync
+# date, log names), whatever the server's own zone: a run at Kyiv midnight on
+# a server one zone west would otherwise still see the previous day.
+export TZ=Europe/Kyiv
+
 base="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$base" || exit 1
 
