@@ -108,9 +108,11 @@ csv-cache/wlm-ua-all-images.csv    # all-time DB's images in no per-year CSV (th
   reports, ratings and eligibility checks read (title, author, monument ids,
   sizes, special nominations, media type, EXIF date — or the upload date when
   there is none — and the ineligible/interior categories). URLs, camera, other categories and
-  revision ids are left out. They are loaded in full with `--csv-cache-resync`
-  (which rewrites their CSVs) or `--export-images-csv`. The CSV files themselves
-  always keep every column.
+  revision ids are left out. They are loaded in full only with
+  `--export-images-csv`. `--csv-cache-resync` keeps them slim: a year the sweep
+  finds unchanged isn't rewritten, and only a changed year is re-read in full to
+  rewrite its CSV, so a resync needs about the memory of a run without it. The
+  CSV files themselves always keep every column.
 * The CSV carries two extra columns, `last_revid` and `last_revision_ts`. Rows
   written before those columns existed fall back to a per-row timestamp: on a
   resync a change counts only if the live revision post-dates the contest's end
@@ -223,6 +225,42 @@ Override with `JAVA_OPTS="-Dscalawiki.write.maxConcurrent=8"` if needed.
 # Wiki Loves Earth
 ./run-stats.sh -c wle-ua -y 2025 --regional-stat
 ```
+
+## Running daily on a server
+
+`scripts/server/wlx-daily.sh` is a cron wrapper that publishes every WLM Ukraine
+report kept up to date in one run: regional statistics (with the hromada
+breakdown), special nominations, RecentlyTaken, objects pictured by uploader,
+most photographed objects, and the bad / missing ids pages of every year
+(`--csv-cache-resync` picks up ids fixed in older years). Before October it
+reports on the previous year's contest. It runs one job at a time (`flock`),
+lets the kernel kill it first if memory runs out, keeps a dated log under
+`logs/`, and prints only on failure, so cron's mail reports just the failures.
+
+Setup, in a directory of its own (e.g. `~/scalawiki`):
+
+```
+scalawiki/
+  run-stats.sh          # from the repo root
+  wlx-daily.sh          # from scripts/server
+  scalawiki-wlx.jar     # sbt scalawiki-wlx/assembly, renamed
+  secrets.env           # SCALAWIKI_LOGIN=IlyaBot@<bot password name>
+                        # SCALAWIKI_PASSWORD=<bot password>      (chmod 600)
+  csv-cache/            # optional: copy csv-cache/wlm-UA-*.csv from a machine
+                        # that has them, to skip the first full fetch
+```
+
+Use a bot password (`Special:BotPasswords`) made for the server alone, with only
+the edit grants, so it can be revoked without touching other setups. Try it with
+`./wlx-daily.sh --dry-run` (output under `dry-run/`), then add to `crontab -e`:
+
+```
+MAILTO=you@example.org
+# 05:00 server time; mind the server's time zone
+0 5 * * * $HOME/scalawiki/wlx-daily.sh
+```
+
+`JAVA_OPTS` defaults to `-Xmx800m` there; check the run's `Memory:` line in the log.
 
 ## Cyrillic prints as `?` on Windows
 

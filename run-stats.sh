@@ -71,4 +71,8 @@ enc_opts=(
 # let G1 share their character data. JAVA_OPTS comes after, so it can override.
 mem_opts=(-XX:+UseStringDeduplication)
 
-exec "$java_bin" "${enc_opts[@]}" "${mem_opts[@]}" ${JAVA_OPTS:-} -jar "$jar" "$@"
+# The reports draw charts (JFreeChart); headless so that works with no display,
+# e.g. on a server.
+awt_opts=(-Djava.awt.headless=true)
+
+exec "$java_bin" "${enc_opts[@]}" "${mem_opts[@]}" "${awt_opts[@]}" ${JAVA_OPTS:-} -jar "$jar" "$@"
