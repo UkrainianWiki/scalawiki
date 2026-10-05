@@ -122,12 +122,20 @@ class Cache(name: String, persistent: Boolean = true, root: File = Cache.default
 }
 
 // TODO async compute, do not enter twice
+/** An [[MwBotImpl]] that memoizes API responses in a [[Cache]]. By default it
+  * sends its requests through the shared bot's session for `site` (see
+  * [[CachedBot.sessionHttp]]), so a logged-in run's cache misses get the bot's
+  * API limits, not an anonymous user's. */
 class CachedBot(
     site: Site,
     name: String,
     persistent: Boolean,
-    http: HttpClient = HttpClient.get(MwBot.system)
-) extends MwBotImpl(site) {
+    http: HttpClient
+) extends MwBotImpl(site, http) {
+
+  def this(site: Site, name: String, persistent: Boolean) =
+    this(site, name, persistent, CachedBot.sessionHttp(site))
+
 
   val cache = new Cache(name, persistent)
 
@@ -177,6 +185,16 @@ class CachedBot(
 }
 
 object CachedBot {
+
+  /** The HTTP client of the shared bot for `site` ([[MwBot.fromSite]], logged
+    * in from the environment when credentials are set): login is a session
+    * cookie held by that client's cookie jar, and a fresh client would have an
+    * empty one. */
+  def sessionHttp(site: Site): HttpClient =
+    MwBot.fromSite(site) match {
+      case bot: MwBotImpl => bot.http
+      case _              => HttpClient.get(MwBot.system)
+    }
 
   def looksLikeJson(body: String): Boolean = {
     val trimmed = body.trim
