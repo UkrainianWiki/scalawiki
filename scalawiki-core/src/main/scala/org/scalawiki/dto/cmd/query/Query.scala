@@ -46,6 +46,17 @@ case class RevIdsParam(override val args: Seq[Long])
     extends IdListParameter("revids", "A list of revision IDs to work on")
     with QueryParam[Long]
 
+/** Resolves redirects in titles, pageids and revids, and in the pages a generator returns:
+  * the query answers the pages they point to. The API takes the parameter's presence as
+  * true, so it is left out when false.
+  */
+case class RedirectsParam(override val arg: Boolean = true)
+    extends BooleanParameter("redirects", "Automatically resolve redirects")
+    with QueryParam[Boolean] {
+
+  override def pairs: Seq[(String, String)] = if (arg) Seq(name -> "") else Nil
+}
+
 //indexpageids Include an additional pageids section listing all returned page IDs.
 //export Export the current revisions of all given or generated pages.
 //exportnowrap Return the export XML without wrapping it in an XML result (same format as Special:Export). Can only be used with export.

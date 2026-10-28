@@ -3,7 +3,7 @@ package org.scalawiki.json
 import org.scalawiki.dto.cmd.Action
 import org.scalawiki.dto.cmd.query.list.{EmbeddedIn, ListParam}
 import org.scalawiki.dto.cmd.query.prop.{Categories, ClLimit, LangLinks, LlLimit, Prop, Revisions}
-import org.scalawiki.dto.cmd.query.{PageIdsParam, Query, TitlesParam}
+import org.scalawiki.dto.cmd.query.{PageIdsParam, Query, RedirectsParam, TitlesParam}
 import org.scalawiki.dto.{MwException, Page}
 import org.scalawiki.util.TestUtils._
 import org.specs2.matcher.MatchResult
@@ -140,6 +140,18 @@ class ParserSpec extends Specification {
         "File:Desert.jpg" -> Nil
       )
       parser.continue === Map("clcontinue" -> "11|Lakes_in_Armenia", "continue" -> "||")
+    }
+
+    "parse the pages redirects resolve to" in {
+      val s =
+        """{"query": {"redirects": [{"from": "File:Old.jpg", "to": "File:New.jpg"}],
+          | "pages": {"5": {"pageid": 5, "ns": 6, "title": "File:New.jpg"}}}}""".stripMargin
+
+      val action = Action(Query(TitlesParam(Seq("File:Old.jpg")), RedirectsParam()))
+      action.pairs.toMap === Map("action" -> "query", "titles" -> "File:Old.jpg", "redirects" -> "")
+      Action(Query(TitlesParam(Seq("File:Old.jpg")), RedirectsParam(false))).pairs.toMap.contains("redirects") must beFalse
+
+      new Parser(action).parse(s).get.map(p => p.id -> p.title) === Seq(Some(5L) -> "File:New.jpg")
     }
 
     "merge the categories of a page split by continue" in {
