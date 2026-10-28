@@ -24,7 +24,7 @@ object Dependencies {
   val ScalaXmlV = "2.3.0"
   val ScallopV = "5.2.0"
   val ProgressBarV = "0.10.1"
-  val Slf4jV = "2.0.16"
+  val Slf4jV = "2.0.20"
   val SwcEngineV = "3.1.9"
   val TypesafeConfigV = "1.4.3"
 
