@@ -4,7 +4,7 @@ object Dependencies {
 
   val AaltoXmlV = "1.3.3"
   val BetterFilesV = "3.9.2"
-  val BlameApiV = "15.10.15"
+  val BlameApiV = "15.10.16"
   val ChronoScalaV = "1.0.0"
   val FicusV = "1.5.2"
   val GuavaV = "33.4.0-jre"
