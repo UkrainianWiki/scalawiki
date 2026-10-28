@@ -4,7 +4,12 @@ import org.scalawiki.dto.cmd.Action
 import org.scalawiki.dto.cmd.query.list._
 import org.scalawiki.dto.cmd.query.prop.{CategoryInfo, IiLimit, ImageInfo, Prop, Revisions}
 import org.scalawiki.dto.cmd.query.prop.iiprop.{IiProp, User => IiUser}
-import org.scalawiki.dto.cmd.query.prop.rvprop.{RvProp, Content => RvContent, Ids => RvIds, Timestamp => RvTimestamp}
+import org.scalawiki.dto.cmd.query.prop.rvprop.{
+  RvProp,
+  Content => RvContent,
+  Ids => RvIds,
+  Timestamp => RvTimestamp
+}
 import org.scalawiki.dto.cmd.query.{Generator, PageIdsParam, Query, TitlesParam}
 import org.scalawiki.dto.{Image, Namespace}
 import org.scalawiki.query.QueryLibrary
@@ -26,41 +31,41 @@ trait ImageQuery {
 
   def imagesWithTemplateByIds(contest: Contest, pageIds: Set[Long]): Future[Iterable[Image]]
 
-  /** Page id + latest revision (id, timestamp) of every file carrying the
-    * contest file template. Cheap (no imageinfo, no content) — used to diff a
-    * CSV cache: new / changed / deleted files.
+  /** Page id + latest revision (id, timestamp) of every file carrying the contest file template.
+    * Cheap (no imageinfo, no content) — used to diff a CSV cache: new / changed / deleted files.
     */
   def imageIdsWithTemplate(contest: Contest): Future[Seq[PageRevInfo]]
 
-  /** Page id + latest revision (id, timestamp) of every file in the contest
-    * images category, without imageinfo. Cheap — used to diff against a CSV cache.
+  /** Page id + latest revision (id, timestamp) of every file in the contest images category,
+    * without imageinfo. Cheap — used to diff against a CSV cache.
     */
   def imageIdsFromCategory(contest: Contest): Future[Seq[PageRevInfo]]
 
-  /** Number of files MediaWiki records for the contest images category
-    * (`categoryinfo.files`), or `None` if the category page is missing / has no
-    * `categoryinfo`. This counter is maintained by the job queue and can lag the
-    * real membership in either direction, so it is only a sanity check on the
-    * completeness of an [[imageIdsFromCategory]] sweep, never an exact count.
+  /** Number of files MediaWiki records for the contest images category (`categoryinfo.files`), or
+    * `None` if the category page is missing / has no `categoryinfo`. This counter is maintained by
+    * the job queue and can lag the real membership in either direction, so it is only a sanity
+    * check on the completeness of an [[imageIdsFromCategory]] sweep, never an exact count.
     */
   def categoryFileCount(contest: Contest): Future[Option[Long]]
 
-  /** Of `pageIds`, those the wiki no longer has: deleted files. A file only moved out of
-    * a category, or renamed, keeps its page id. Fails if a request does.
+  /** Of `pageIds`, those the wiki no longer has: deleted files. A file only moved out of a
+    * category, or renamed, keeps its page id. Fails if a request does.
     */
   def missingPageIds(pageIds: Set[Long]): Future[Set[Long]]
 
 }
 
-class ImageQueryApi(bot: ActionBot, batchGate: AsyncGate = ImageQuery.batchGate) extends ImageQuery with QueryLibrary {
+class ImageQueryApi(bot: ActionBot, batchGate: AsyncGate = ImageQuery.batchGate)
+    extends ImageQuery
+    with QueryLibrary {
 
   /** File templates of every special nomination, regardless of contest year.
     *
-    * Recognition must not depend on `contest.year`: a photo uploaded for the
-    * 2024 interior nomination still carries `{{WLM2024-UA-interior}}` when it
-    * turns up in an all-time / prior-year fetch, and downstream logic (e.g.
-    * [[org.scalawiki.wlx.stat.rating.NumberOfInteriorImagesBonus]]) needs to see
-    * it. Consumers that care about a specific year filter by exact template name.
+    * Recognition must not depend on `contest.year`: a photo uploaded for the 2024 interior
+    * nomination still carries `{{WLM2024-UA-interior}}` when it turns up in an all-time /
+    * prior-year fetch, and downstream logic (e.g.
+    * [[org.scalawiki.wlx.stat.rating.NumberOfInteriorImagesBonus]]) needs to see it. Consumers that
+    * care about a specific year filter by exact template name.
     */
   private val allSpecialNominationTemplates: Set[String] =
     SpecialNomination.nominations.flatMap(_.fileTemplate).toSet
@@ -91,13 +96,15 @@ class ImageQueryApi(bot: ActionBot, batchGate: AsyncGate = ImageQuery.batchGate)
       )
       .map(_.headOption.flatMap(_.categoryInfo).map(_.files))
 
-  /** The API answers a page id it no longer has with `{"pageid": N, "missing": ""}`,
-    * without a title, which the parser leaves out: an id the answer doesn't list is missing.
+  /** The API answers a page id it no longer has with `{"pageid": N, "missing": ""}`, without a
+    * title, which the parser leaves out: an id the answer doesn't list is missing.
     */
   override def missingPageIds(pageIds: Set[Long]): Future[Set[Long]] =
     Future
       .traverse(pageIds.toSeq.sorted.grouped(50).toSeq) { slice =>
-        batchGate.submit(bot.run(Action(Query(PageIdsParam(slice))))).map(pages => slice.toSet -- pages.flatMap(_.id))
+        batchGate
+          .submit(bot.run(Action(Query(PageIdsParam(slice)))))
+          .map(pages => slice.toSet -- pages.flatMap(_.id))
       }
       .map(_.flatten.toSet)
 
@@ -130,14 +137,18 @@ class ImageQueryApi(bot: ActionBot, batchGate: AsyncGate = ImageQuery.batchGate)
       if (!windows.hasNext) Future.successful(acc)
       else {
         val batch = windows.next().toVector
-        Future.traverse(batch) { idsSlice =>
-          batchGate.submit {
-            bot.run(imagesByIds(idsSlice, withMetadata = true, withMediaType = true))
-          }.map { pages =>
-            bot.log.info(s"Fetched ${fetched.addAndGet(pages.size)} of ${pageIds.size}")
-            pages.flatMap(Image.fromPage(contest.fileTemplate, specialNominationTemplates))
+        Future
+          .traverse(batch) { idsSlice =>
+            batchGate
+              .submit {
+                bot.run(imagesByIds(idsSlice, withMetadata = true, withMediaType = true))
+              }
+              .map { pages =>
+                bot.log.info(s"Fetched ${fetched.addAndGet(pages.size)} of ${pageIds.size}")
+                pages.flatMap(Image.fromPage(contest.fileTemplate, specialNominationTemplates))
+              }
           }
-        }.flatMap(results => next(acc ++ results.flatten))
+          .flatMap(results => next(acc ++ results.flatten))
       }
     next(Vector.empty).flatMap(withAuthors)
   }
@@ -146,15 +157,18 @@ class ImageQueryApi(bot: ActionBot, batchGate: AsyncGate = ImageQuery.batchGate)
     val specialNominationTemplates = allSpecialNominationTemplates
     for {
       pages <- bot.run(imagesByGenerator(generator, withMetadata = true, withMediaType = true))
-      images <- withAuthors(pages.flatMap(Image.fromPage(contest.fileTemplate, specialNominationTemplates)).toSeq)
+      images <- withAuthors(
+        pages.flatMap(Image.fromPage(contest.fileTemplate, specialNominationTemplates)).toSeq
+      )
     } yield images
   }
 
   private def withAuthors(images: Seq[Image]): Future[Seq[Image]] =
     withCreditTemplateAuthors(images).flatMap(withOriginalUploaders)
 
-  /** Credits a file whose author is a photographer's credit template (`{{Yuriy Kvach}}`) to the user its page links to:
-    * one more request per 50 such templates. A template that links to nobody leaves the file to its uploader.
+  /** Credits a file whose author is a photographer's credit template (`{{Yuriy Kvach}}`) to the
+    * user its page links to: one more request per 50 such templates. A template that links to
+    * nobody leaves the file to its uploader.
     */
   private def withCreditTemplateAuthors(images: Seq[Image]): Future[Seq[Image]] = {
     def normalized(name: String) = name.replace('_', ' ').capitalize
@@ -164,13 +178,20 @@ class ImageQueryApi(bot: ActionBot, batchGate: AsyncGate = ImageQuery.batchGate)
       Future
         .traverse(templates.grouped(50).toSeq) { slice =>
           batchGate.submit {
-            bot.run(Action(Query(TitlesParam(slice.map("Template:" + _)), Prop(Revisions(RvProp(RvContent))))))
+            bot.run(
+              Action(
+                Query(TitlesParam(slice.map("Template:" + _)), Prop(Revisions(RvProp(RvContent))))
+              )
+            )
           }
         }
         .map { results =>
           // a redirect's text links to its target, which is the user's page all the same
           val userOf = results.flatten.flatMap { page =>
-            page.revisions.headOption.flatMap(_.content).flatMap(Image.userIn).map(page.title.stripPrefix("Template:") -> _)
+            page.revisions.headOption
+              .flatMap(_.content)
+              .flatMap(Image.userIn)
+              .map(page.title.stripPrefix("Template:") -> _)
           }.toMap
           images.map { image =>
             image.author.flatMap(Image.creditTemplate).map(normalized).fold(image) { template =>
@@ -180,9 +201,9 @@ class ImageQueryApi(bot: ActionBot, batchGate: AsyncGate = ImageQuery.batchGate)
         }
   }
 
-  /** Credits a file whose page names no author (or names them as `Я`, "me") to its original uploader, see
-    * [[Image.authorFromUploader]]. That needs the file's whole upload history, which the image queries above don't
-    * fetch: one more request per 50 such files, usually none.
+  /** Credits a file whose page names no author (or names them as `Я`, "me") to its original
+    * uploader, see [[Image.authorFromUploader]]. That needs the file's whole upload history, which
+    * the image queries above don't fetch: one more request per 50 such files, usually none.
     */
   private def withOriginalUploaders(images: Seq[Image]): Future[Seq[Image]] = {
     val unauthored = images.filter(_.author.isEmpty).flatMap(_.pageId)
@@ -191,7 +212,9 @@ class ImageQueryApi(bot: ActionBot, batchGate: AsyncGate = ImageQuery.batchGate)
       Future
         .traverse(unauthored.grouped(50).toSeq) { slice =>
           batchGate.submit {
-            bot.run(Action(Query(PageIdsParam(slice), Prop(ImageInfo(IiProp(IiUser), IiLimit("max"))))))
+            bot.run(
+              Action(Query(PageIdsParam(slice), Prop(ImageInfo(IiProp(IiUser), IiLimit("max")))))
+            )
           }
         }
         .map { results =>
@@ -235,9 +258,9 @@ object ImageQuery {
   // Process-wide: CachedBot and live queries share the same Commons pool.
   private[query] val batchGate = new AsyncGate(2)
 
-  /** Page id + its latest revision (id and timestamp). The cheap change token
-    * used to diff a CSV image cache against the wiki. `revId` / `timestamp` are
-    * empty when the current revision is revision-deleted.
+  /** Page id + its latest revision (id and timestamp). The cheap change token used to diff a CSV
+    * image cache against the wiki. `revId` / `timestamp` are empty when the current revision is
+    * revision-deleted.
     */
   case class PageRevInfo(
       pageId: Long,

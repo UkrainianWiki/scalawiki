@@ -6,11 +6,10 @@ import java.util.concurrent.atomic.AtomicLong
 
 /** Process-wide "dry run" switch for outbound wiki writes.
   *
-  * Once [[enable]]d, page edits are not sent: the text that would have been
-  * published is saved to `<dir>/<host>/<title>.wiki` instead (a later edit of
-  * the same page overwrites the file, as on the wiki), and file uploads are
-  * skipped and only logged. Reads are unaffected, so a run still fetches and
-  * builds everything it normally would. Disabled by default.
+  * Once [[enable]]d, page edits are not sent: the text that would have been published is saved to
+  * `<dir>/<host>/<title>.wiki` instead (a later edit of the same page overwrites the file, as on
+  * the wiki), and file uploads are skipped and only logged. Reads are unaffected, so a run still
+  * fetches and builds everything it normally would. Disabled by default.
   */
 object DryRun {
 
@@ -47,8 +46,9 @@ object DryRun {
 
   def skipUpload(): Unit = skipped.incrementAndGet()
 
-  /** A page title as a single file name: subpage slashes, the namespace colon
-    * and other characters Windows rejects become `_`. */
+  /** A page title as a single file name: subpage slashes, the namespace colon and other characters
+    * Windows rejects become `_`.
+    */
   private[util] def fileName(s: String): String =
     s.replaceAll("""[\\/:*?"<>|\p{Cntrl}]""", "_")
 }

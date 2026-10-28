@@ -46,9 +46,8 @@ class WlxTemplateParserSpec extends Specification {
 
       monuments.size === 2
       monuments.map(_.page).toSet === Set("page")
-      monuments.map(m =>
-        Seq(m.id, m.name, m.otherParams("_f1"), m.otherParams("_f2"))
-      ) === data.map(_.toMap.values.toSeq)
+      monuments.map(m => Seq(m.id, m.name, m.otherParams("_f1"), m.otherParams("_f2"))) === data
+        .map(_.toMap.values.toSeq)
     }
   }
 }

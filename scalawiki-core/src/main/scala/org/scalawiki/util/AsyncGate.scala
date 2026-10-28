@@ -14,7 +14,9 @@ final class AsyncGate(maxConcurrent: Int) {
   def submit[T](operation: => Future[T])(implicit ec: ExecutionContext): Future[T] = {
     val result = Promise[T]()
     val start = () => {
-      val future = try operation catch { case NonFatal(e) => Future.failed(e) }
+      val future =
+        try operation
+        catch { case NonFatal(e) => Future.failed(e) }
       future.onComplete { outcome =>
         lock.synchronized { running -= 1 }
         result.complete(outcome)

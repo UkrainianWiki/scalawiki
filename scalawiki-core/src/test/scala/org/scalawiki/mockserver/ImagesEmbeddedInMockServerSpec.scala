@@ -4,9 +4,7 @@ import org.scalawiki.query.QueryLibrary
 import org.scalawiki.util.TestUtils.resourceAsString
 import spray.util.pimpFuture
 
-class ImagesEmbeddedInMockServerSpec
-    extends BaseMockServerSpec
-    with QueryLibrary {
+class ImagesEmbeddedInMockServerSpec extends BaseMockServerSpec with QueryLibrary {
 
   "images" should {
     "successfully get images" in {

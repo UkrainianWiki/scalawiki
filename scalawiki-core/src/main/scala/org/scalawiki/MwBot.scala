@@ -68,9 +68,10 @@ trait MwBot extends ActionBot {
 
   def token: String
 
-  /** Drop any cached CSRF/edit token so the next [[token]] read fetches a fresh
-    * one. Call this when the wiki rejects an edit with `badtoken` (the token
-    * expired mid-run). No-op for bots that do not cache a token. */
+  /** Drop any cached CSRF/edit token so the next [[token]] read fetches a fresh one. Call this when
+    * the wiki rejects an edit with `badtoken` (the token expired mid-run). No-op for bots that do
+    * not cache a token.
+    */
   def invalidateToken(): Unit = ()
 
   def await[T](future: Future[T]): T

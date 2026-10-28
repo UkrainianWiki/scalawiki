@@ -22,8 +22,8 @@ object CookieJarSpecification extends Properties("CookieHandling") {
 
   val genToken = {
     val separators = List(
-      '(', ')', '<', '>', '@', ',', ';', ':', '\\', '"', '/', '[', ']', '?',
-      '=', '{', '}', ' ', '\t'
+      '(', ')', '<', '>', '@', ',', ';', ':', '\\', '"', '/', '[', ']', '?', '=', '{', '}', ' ',
+      '\t'
     )
     val allowedChars = Range(32, 126).map(_.toChar).toSet -- separators
     val genTokenChar = Gen.oneOf(allowedChars.toSeq)
@@ -73,15 +73,13 @@ object CookieJarSpecification extends Properties("CookieHandling") {
           if (httpCookies.length > cookies.length)
             throw new Exception("received more cookies than expected")
           else if (
-            !cookies.forall(expected ⇒
-              httpCookies.exists(received ⇒ received.name == expected.name)
-            )
+            !cookies
+              .forall(expected ⇒ httpCookies.exists(received ⇒ received.name == expected.name))
           )
             throw new Exception("reponse didn't contain cookies for all names")
           else if (
-            !httpCookies.forall(received ⇒
-              cookies.exists(testcookie ⇒ testcookie.name == received.name)
-            )
+            !httpCookies
+              .forall(received ⇒ cookies.exists(testcookie ⇒ testcookie.name == received.name))
           )
             throw new Exception(
               "reponse contained a cookie with a name that is not expected"

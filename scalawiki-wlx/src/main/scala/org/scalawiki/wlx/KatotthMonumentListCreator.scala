@@ -2,15 +2,7 @@ package org.scalawiki.wlx
 
 import org.scalawiki.MwBot
 import org.scalawiki.dto.markup.Table
-import org.scalawiki.wlx.dto.{
-  AdmDivision,
-  Contest,
-  Country,
-  Katotth,
-  Koatuu,
-  Monument,
-  RegionType
-}
+import org.scalawiki.wlx.dto.{AdmDivision, Contest, Country, Katotth, Koatuu, Monument, RegionType}
 import org.scalawiki.wlx.query.MonumentQuery
 import org.scalawiki.wlx.stat.reports.Output
 

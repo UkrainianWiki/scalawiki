@@ -51,9 +51,9 @@ case class StatConfig(
     resyncOnly: Boolean = false
 ) {
 
-  /** Directory holding the automatic image CSV cache. An explicit
-    * `--images-from-csv` dir wins (and keeps its strict "must exist" semantics);
-    * otherwise the `csv-cache/` subdir of the working directory.
+  /** Directory holding the automatic image CSV cache. An explicit `--images-from-csv` dir wins (and
+    * keeps its strict "must exist" semantics); otherwise the `csv-cache/` subdir of the working
+    * directory.
     */
   def effectiveCsvCacheDir: String = imagesFromCsv.getOrElse(csvCacheDir)
 }
@@ -102,12 +102,21 @@ class StatParams(arguments: Seq[String]) extends ScallopConf(arguments) {
     descr =
       "let --fill-lists-rating use a --year whose rating rules are already replaced by a later year's rates in the campaign config (refused otherwise)"
   )
-  val wrongIds = opt[Boolean](name = "wrong-ids", descr = "report images whose monument id matches no monument, one page per year of the run (special nomination images left out)")
+  val wrongIds = opt[Boolean](
+    name = "wrong-ids",
+    descr =
+      "report images whose monument id matches no monument, one page per year of the run (special nomination images left out)"
+  )
   val missingIds =
-    opt[Boolean](name = "missing-ids", descr = "report images with no monument id, one page per year of the run (special nomination images left out)")
+    opt[Boolean](
+      name = "missing-ids",
+      descr =
+        "report images with no monument id, one page per year of the run (special nomination images left out)"
+    )
   val deletedImages = opt[Boolean](
     name = "deleted-images",
-    descr = "report the cached files that were deleted on Commons (kept in the CSV cache's *-deleted-images.csv), every year of the run on one page"
+    descr =
+      "report the cached files that were deleted on Commons (kept in the CSV cache's *-deleted-images.csv), every year of the run on one page"
   )
   val multipleIds =
     opt[Boolean](name = "multiple-ids", descr = "report multiple ids")
@@ -149,31 +158,81 @@ class StatParams(arguments: Seq[String]) extends ScallopConf(arguments) {
   val recentlyTakenFiles =
     opt[String](name = "recently-taken-files", descr = "recently taken files")
   val exportCsv =
-    opt[String](name = "export-csv", descr = "Export monuments to CSV. Optional filename; defaults to <campaign>-YYYY-MM-DD-HHmm.csv")
+    opt[String](
+      name = "export-csv",
+      descr =
+        "Export monuments to CSV. Optional filename; defaults to <campaign>-YYYY-MM-DD-HHmm.csv"
+    )
   val exportImagesCsv =
-    opt[String](name = "export-images-csv", descr = "Export images to CSV files per year. Argument is output directory (default: current dir).")
+    opt[String](
+      name = "export-images-csv",
+      descr =
+        "Export images to CSV files per year. Argument is output directory (default: current dir)."
+    )
   val imagesFromCsv =
-    opt[String](name = "images-from-csv", descr = "Read past years' images from CSV files instead of querying/caching from the wiki. Argument is the directory containing <campaign>-<year>-images.csv / <campaign>-all-images.csv files produced by --export-images-csv.")
+    opt[String](
+      name = "images-from-csv",
+      descr =
+        "Read past years' images from CSV files instead of querying/caching from the wiki. Argument is the directory containing <campaign>-<year>-images.csv / <campaign>-all-images.csv files produced by --export-images-csv."
+    )
   val noCsvCache =
-    opt[Boolean](name = "no-csv-cache", descr = "Disable the automatic image CSV cache (csv-cache/ dir); always fetch/parse from the wiki (the http-cache/ request cache still applies).")
+    opt[Boolean](
+      name = "no-csv-cache",
+      descr =
+        "Disable the automatic image CSV cache (csv-cache/ dir); always fetch/parse from the wiki (the http-cache/ request cache still applies)."
+    )
   val csvCacheDir =
-    opt[String](name = "csv-cache-dir", descr = "Directory for the automatic image CSV cache (default: csv-cache).")
+    opt[String](
+      name = "csv-cache-dir",
+      descr = "Directory for the automatic image CSV cache (default: csv-cache)."
+    )
   val csvCacheRefresh =
-    opt[Boolean](name = "csv-cache-refresh", descr = "Ignore existing image CSV caches this run: refetch from the wiki and overwrite them.")
+    opt[Boolean](
+      name = "csv-cache-refresh",
+      descr = "Ignore existing image CSV caches this run: refetch from the wiki and overwrite them."
+    )
   val csvCacheResync =
-    opt[Boolean](name = "csv-cache-resync", descr = "Re-check cached images (past years + all-images) against the wiki via a cheap id+revision sweep: refetch only rows whose file page changed since caching, drop deleted/de-categorised ones. The current year's cache always does this.")
+    opt[Boolean](
+      name = "csv-cache-resync",
+      descr =
+        "Re-check cached images (past years + all-images) against the wiki via a cheap id+revision sweep: refetch only rows whose file page changed since caching, drop deleted/de-categorised ones. The current year's cache always does this."
+    )
   val csvCacheResyncInterval =
-    opt[Int](name = "csv-cache-resync-interval", descr = "With --csv-cache-resync: skip the past-year resync when the last one that completed was less than this many days ago (dates kept in <csv-cache-dir>/<campaign>-resync.date). The current year is synced on every run regardless.")
+    opt[Int](
+      name = "csv-cache-resync-interval",
+      descr =
+        "With --csv-cache-resync: skip the past-year resync when the last one that completed was less than this many days ago (dates kept in <csv-cache-dir>/<campaign>-resync.date). The current year is synced on every run regardless."
+    )
   val resyncOnly =
-    opt[Boolean](name = "resync-only", descr = "Resync image CSV caches only, including all-time images; implies --csv-cache-resync. Skip every report, export and wiki write. For a separate maintenance job.")
+    opt[Boolean](
+      name = "resync-only",
+      descr =
+        "Resync image CSV caches only, including all-time images; implies --csv-cache-resync. Skip every report, export and wiki write. For a separate maintenance job."
+    )
   val monumentCacheRefresh =
-    opt[Boolean](name = "monument-cache-refresh", descr = "Ignore the cached monument lists (csv-cache/<campaign>-monuments.csv) this run: refetch every list page from the wiki and overwrite the cache. Without this the cache is kept and only pages whose revision changed are refetched.")
+    opt[Boolean](
+      name = "monument-cache-refresh",
+      descr =
+        "Ignore the cached monument lists (csv-cache/<campaign>-monuments.csv) this run: refetch every list page from the wiki and overwrite the cache. Without this the cache is kept and only pages whose revision changed are refetched."
+    )
   val verbose =
-    opt[Boolean](name = "verbose", descr = "Verbose logging: echo per-request INFO detail to the console and record DEBUG detail in logs/scalawiki.log (default: console WARN+, file INFO).")
+    opt[Boolean](
+      name = "verbose",
+      descr =
+        "Verbose logging: echo per-request INFO detail to the console and record DEBUG detail in logs/scalawiki.log (default: console WARN+, file INFO)."
+    )
   val noProgress =
-    opt[Boolean](name = "no-progress", descr = "Disable the live console progress display (progress is still written to logs/scalawiki.log).")
+    opt[Boolean](
+      name = "no-progress",
+      descr =
+        "Disable the live console progress display (progress is still written to logs/scalawiki.log)."
+    )
   val dryRun =
-    opt[Boolean](name = "dry-run", descr = "Build every report but publish nothing: each page edit's text is saved to <dry-run-dir>/<host>/<title>.wiki instead, uploads are skipped. Wiki reads and local caches work as usual.")
+    opt[Boolean](
+      name = "dry-run",
+      descr =
+        "Build every report but publish nothing: each page edit's text is saved to <dry-run-dir>/<host>/<title>.wiki instead, uploads are skipped. Wiki reads and local caches work as usual."
+    )
   val dryRunDir =
     opt[String](name = "dry-run-dir", descr = "Directory for --dry-run output (default: dry-run).")
   verify()
@@ -186,10 +245,17 @@ object StatParams {
 
     val conf = new StatParams(args)
     val only = conf.resyncOnly.getOrElse(false)
-    require(!only || (!conf.noCsvCache.getOrElse(false) && conf.imagesFromCsv.toOption.isEmpty &&
-      !conf.csvCacheRefresh.getOrElse(false) && conf.exportCsv.toOption.isEmpty && conf.exportImagesCsv.toOption.isEmpty),
-      "--resync-only requires the automatic CSV cache and cannot be combined with refresh or export options")
-    require(conf.csvCacheResyncInterval.toOption.forall(_ > 0), "--csv-cache-resync-interval must be positive")
+    require(
+      !only || (!conf.noCsvCache.getOrElse(false) && conf.imagesFromCsv.toOption.isEmpty &&
+        !conf.csvCacheRefresh.getOrElse(
+          false
+        ) && conf.exportCsv.toOption.isEmpty && conf.exportImagesCsv.toOption.isEmpty),
+      "--resync-only requires the automatic CSV cache and cannot be combined with refresh or export options"
+    )
+    require(
+      conf.csvCacheResyncInterval.toOption.forall(_ > 0),
+      "--csv-cache-resync-interval must be positive"
+    )
 
     val year = conf.years.getOrElse(List(ZonedDateTime.now.getYear)).sorted
     val startYear = conf.startYear.getOrElse(year.head)

@@ -8,11 +8,10 @@ import scala.concurrent.Future
 trait PageQuery {
 
   /** @param limit
-    *   value for the `rvlimit` API parameter, or `None` to omit it entirely.
-    *   `Some("max")` (the default) walks the whole revision history, paging
-    *   through `rvcontinue`. `None` asks MediaWiki for the current revision
-    *   only — use it when you just need the live page text/revid and don't
-    *   want to download (and retain) the full history with content.
+    *   value for the `rvlimit` API parameter, or `None` to omit it entirely. `Some("max")` (the
+    *   default) walks the whole revision history, paging through `rvcontinue`. `None` asks
+    *   MediaWiki for the current revision only — use it when you just need the live page text/revid
+    *   and don't want to download (and retain) the full history with content.
     */
   def revisions(
       namespaces: Set[Int] = Set.empty,

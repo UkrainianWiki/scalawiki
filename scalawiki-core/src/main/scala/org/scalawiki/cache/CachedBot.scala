@@ -29,16 +29,14 @@ object Cache {
 
 /** A plain filesystem key -> file cache.
   *
-  * Each entry is one file under `<root>/<name>/` (root defaults to `http-cache/`),
-  * named by the SHA-256 hex of the key, holding the response body verbatim
-  * (UTF-8). This replaced a ChronicleMap-backed store: the file cache is smaller,
-  * faster to read, plain text, and needs no `--add-opens` / `--add-exports` JVM
-  * flags to run on JDK 17+.
+  * Each entry is one file under `<root>/<name>/` (root defaults to `http-cache/`), named by the
+  * SHA-256 hex of the key, holding the response body verbatim (UTF-8). This replaced a
+  * ChronicleMap-backed store: the file cache is smaller, faster to read, plain text, and needs no
+  * `--add-opens` / `--add-exports` JVM flags to run on JDK 17+.
   *
-  * Writes go through a temp file + atomic rename, so a reader never sees a
-  * half-written entry; per-key locking keeps a key's value function to a single
-  * run per process. Concurrent processes may still both compute a cold key, but
-  * the rename makes that safe.
+  * Writes go through a temp file + atomic rename, so a reader never sees a half-written entry;
+  * per-key locking keeps a key's value function to a single run per process. Concurrent processes
+  * may still both compute a cold key, but the rename makes that safe.
   */
 class Cache(name: String, persistent: Boolean = true, root: File = Cache.defaultRoot) {
 
@@ -46,9 +44,9 @@ class Cache(name: String, persistent: Boolean = true, root: File = Cache.default
 
   private val memory: TrieMap[String, String] = TrieMap.empty[String, String]
 
-  /** Per-key locks so a given key's value function runs at most once per
-    * process, the way `ChronicleMap.computeIfAbsent` used to guarantee.
-    * (Across processes the atomic rename below still keeps readers consistent.)
+  /** Per-key locks so a given key's value function runs at most once per process, the way
+    * `ChronicleMap.computeIfAbsent` used to guarantee. (Across processes the atomic rename below
+    * still keeps readers consistent.)
     */
   private val locks: TrieMap[String, AnyRef] = TrieMap.empty[String, AnyRef]
 
@@ -83,9 +81,10 @@ class Cache(name: String, persistent: Boolean = true, root: File = Cache.default
       }
     }
 
-  /** An existing cache file's content, or `None` if it is absent or could not
-    * be read — e.g. a concurrent eviction deleted it between the check and the
-    * read; the caller then simply recomputes. */
+  /** An existing cache file's content, or `None` if it is absent or could not be read — e.g. a
+    * concurrent eviction deleted it between the check and the read; the caller then simply
+    * recomputes.
+    */
   private def readFile(target: File): Option[String] =
     try {
       if (target.isFile)
@@ -122,10 +121,10 @@ class Cache(name: String, persistent: Boolean = true, root: File = Cache.default
 }
 
 // TODO async compute, do not enter twice
-/** An [[MwBotImpl]] that memoizes API responses in a [[Cache]]. By default it
-  * sends its requests through the shared bot's session for `site` (see
-  * [[CachedBot.sessionHttp]]), so a logged-in run's cache misses get the bot's
-  * API limits, not an anonymous user's. */
+/** An [[MwBotImpl]] that memoizes API responses in a [[Cache]]. By default it sends its requests
+  * through the shared bot's session for `site` (see [[CachedBot.sessionHttp]]), so a logged-in
+  * run's cache misses get the bot's API limits, not an anonymous user's.
+  */
 class CachedBot(
     site: Site,
     name: String,
@@ -135,7 +134,6 @@ class CachedBot(
 
   def this(site: Site, name: String, persistent: Boolean) =
     this(site, name, persistent, CachedBot.sessionHttp(site))
-
 
   val cache = new Cache(name, persistent)
 
@@ -186,10 +184,10 @@ class CachedBot(
 
 object CachedBot {
 
-  /** The HTTP client of the shared bot for `site` ([[MwBot.fromSite]], logged
-    * in from the environment when credentials are set): login is a session
-    * cookie held by that client's cookie jar, and a fresh client would have an
-    * empty one. */
+  /** The HTTP client of the shared bot for `site` ([[MwBot.fromSite]], logged in from the
+    * environment when credentials are set): login is a session cookie held by that client's cookie
+    * jar, and a fresh client would have an empty one.
+    */
   def sessionHttp(site: Site): HttpClient =
     MwBot.fromSite(site) match {
       case bot: MwBotImpl => bot.http

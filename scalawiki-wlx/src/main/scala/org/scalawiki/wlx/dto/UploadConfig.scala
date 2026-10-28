@@ -4,8 +4,7 @@ import com.typesafe.config.Config
 import org.scalawiki.wlx.dto.lists.ListConfig
 
 /** @param campaign
-  *   name of upload campaign
-  *   (https://commons.wikimedia.org/wiki/Commons:Upload_campaigns)
+  *   name of upload campaign (https://commons.wikimedia.org/wiki/Commons:Upload_campaigns)
   * @param listTemplate
   *   name of template that monument lists consist of
   * @param fileTemplate

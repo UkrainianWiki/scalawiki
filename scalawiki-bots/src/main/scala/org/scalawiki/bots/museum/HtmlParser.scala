@@ -8,8 +8,7 @@ import scala.compat.Platform
 
 object HtmlParser {
 
-  /** Replaces special whitespace characters (short/nonbreaking space) with
-    * regular space
+  /** Replaces special whitespace characters (short/nonbreaking space) with regular space
     * @param s
     * @return
     */

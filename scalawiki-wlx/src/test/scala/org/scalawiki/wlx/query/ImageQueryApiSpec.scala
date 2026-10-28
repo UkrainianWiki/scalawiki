@@ -21,7 +21,11 @@ class ImageQueryApiSpec extends Specification {
     val peak = new AtomicInteger()
     val calls = new AtomicInteger()
     override def log = NoLogging
-    override def run(action: Action, context: Map[String, String], limit: Option[Long]): Future[Iterable[Page]] = {
+    override def run(
+        action: Action,
+        context: Map[String, String],
+        limit: Option[Long]
+    ): Future[Iterable[Page]] = {
       val ids = action.pairs.find(_._1 == "pageids").get._2.split("\\|").map(_.toLong).toSeq
       val count = active.incrementAndGet()
       peak.updateAndGet(p => math.max(p, count))
@@ -42,8 +46,10 @@ class ImageQueryApiSpec extends Specification {
     "share its concurrency budget across queries and fetch every id exactly once" in {
       val bot = new ControlledBot
       val gate = new AsyncGate(2)
-      val first = new ImageQueryApi(bot, gate).imagesWithTemplateByIds(Contest.WLMUkraine(2012), (1L to 7000L).toSet)
-      val second = new ImageQueryApi(bot, gate).imagesWithTemplateByIds(Contest.WLMUkraine(2013), (7001L to 12000L).toSet)
+      val first = new ImageQueryApi(bot, gate)
+        .imagesWithTemplateByIds(Contest.WLMUkraine(2012), (1L to 7000L).toSet)
+      val second = new ImageQueryApi(bot, gate)
+        .imagesWithTemplateByIds(Contest.WLMUkraine(2013), (7001L to 12000L).toSet)
       val requested = Vector.newBuilder[Long]
       (1 to 240).foreach { _ =>
         val (ids, promise) = bot.take()
@@ -74,45 +80,78 @@ class ImageQueryApiSpec extends Specification {
       val asked = new LinkedBlockingQueue[Seq[Long]]()
       val bot = new ActionBot {
         override def log = NoLogging
-        override def run(action: Action, context: Map[String, String], limit: Option[Long]): Future[Iterable[Page]] = {
+        override def run(
+            action: Action,
+            context: Map[String, String],
+            limit: Option[Long]
+        ): Future[Iterable[Page]] = {
           val ids = action.pairs.find(_._1 == "pageids").get._2.split("\\|").map(_.toLong).toSeq
           asked.add(ids)
-          Future.successful(ids.filter(existing.contains).map(id => new Page(Some(id), Some(6), s"File:$id.jpg")))
+          Future.successful(
+            ids.filter(existing.contains).map(id => new Page(Some(id), Some(6), s"File:$id.jpg"))
+          )
         }
       }
-      val missing = Await.result(new ImageQueryApi(bot, new AsyncGate(2)).missingPageIds((1L to 120L).toSet), 5.seconds)
+      val missing = Await.result(
+        new ImageQueryApi(bot, new AsyncGate(2)).missingPageIds((1L to 120L).toSet),
+        5.seconds
+      )
       missing must_== Set(7L, 99L)
       asked.size must_== 3
     }
   }
 
-  def version(uploader: String) = Image.basic("File:Театр.jpg", None, Some(uploader), None, None, None, None, None, Some(1L))
+  def version(uploader: String) =
+    Image.basic("File:Театр.jpg", None, Some(uploader), None, None, None, None, None, Some(1L))
 
   // the image query sees only the latest version; the history query lists all of them, newest first
-  class HistoryBot(text: String, history: Seq[String], templates: Map[String, String] = Map.empty) extends ActionBot {
+  class HistoryBot(text: String, history: Seq[String], templates: Map[String, String] = Map.empty)
+      extends ActionBot {
     val historyRequests = new AtomicInteger()
     override def log = NoLogging
-    override def run(action: Action, context: Map[String, String], limit: Option[Long]): Future[Iterable[Page]] =
+    override def run(
+        action: Action,
+        context: Map[String, String],
+        limit: Option[Long]
+    ): Future[Iterable[Page]] =
       Future.successful {
         val titles = action.pairs.toMap.get("titles")
         if (titles.isDefined)
           titles.get.split("\\|").toSeq.flatMap { title =>
-            templates.get(title).map(content => Page(Some(2L), Some(10), title, Seq(Revision.one(content))))
+            templates
+              .get(title)
+              .map(content => Page(Some(2L), Some(10), title, Seq(Revision.one(content))))
           }
         else if (action.pairs.toMap.get("iilimit").contains("max")) {
           historyRequests.incrementAndGet()
           Seq(Page(Some(1L), Some(6), "File:Театр.jpg", images = history.map(version)))
         } else
-          Seq(Page(Some(1L), Some(6), "File:Театр.jpg", Seq(Revision.one(text)), Seq(version(history.head))))
+          Seq(
+            Page(
+              Some(1L),
+              Some(6),
+              "File:Театр.jpg",
+              Seq(Revision.one(text)),
+              Seq(version(history.head))
+            )
+          )
       }
   }
 
   "a file whose page names no author" should {
     def author(bot: ActionBot) =
-      Await.result(new ImageQueryApi(bot).imagesWithTemplateByIds(Contest.WLMUkraine(2012), Set(1L)), 5.seconds).head.author
+      Await
+        .result(
+          new ImageQueryApi(bot).imagesWithTemplateByIds(Contest.WLMUkraine(2012), Set(1L)),
+          5.seconds
+        )
+        .head
+        .author
 
     "be credited to the original uploader, not to whoever uploaded the latest version" in {
-      author(new HistoryBot("{{Зображення|Автор=Я}}", Seq("Andrew J.Kurbiko", "Tttaaannne", "Бахтін"))) === Some("Бахтін")
+      author(
+        new HistoryBot("{{Зображення|Автор=Я}}", Seq("Andrew J.Kurbiko", "Tttaaannne", "Бахтін"))
+      ) === Some("Бахтін")
     }
 
     "not be credited to a bot that uploaded it" in {
@@ -120,34 +159,51 @@ class ImageQueryApiSpec extends Specification {
     }
 
     "not need the history when the page names the author" in {
-      val bot = new HistoryBot("{{Зображення|Автор=[[Користувач:Бахтін|Бахтін]]}}", Seq("Andrew J.Kurbiko"))
+      val bot =
+        new HistoryBot("{{Зображення|Автор=[[Користувач:Бахтін|Бахтін]]}}", Seq("Andrew J.Kurbiko"))
       author(bot) === Some("Бахтін")
       bot.historyRequests.get === 0
     }
 
     "not be credited to the uploader when the author is unknown" in {
-      author(new HistoryBot("{{Information|author={{unknown|author}}}}", Seq("VileGecko"))) === Some("")
+      author(
+        new HistoryBot("{{Information|author={{unknown|author}}}}", Seq("VileGecko"))
+      ) === Some("")
     }
   }
 
   "a file credited with a photographer's template" should {
     def author(text: String, templates: Map[String, String]) = {
       val bot = new HistoryBot(text, Seq("MaksWiki"), templates)
-      Await.result(new ImageQueryApi(bot).imagesWithTemplateByIds(Contest.WLMUkraine(2012), Set(1L)), 5.seconds).head.author
+      Await
+        .result(
+          new ImageQueryApi(bot).imagesWithTemplateByIds(Contest.WLMUkraine(2012), Set(1L)),
+          5.seconds
+        )
+        .head
+        .author
     }
 
     "be credited to the user the template links to" in {
-      author("{{Information|author={{MO}}}}", Map("Template:MO" -> "[[User:Максим Огородник|Максим Огородник]]")) ===
+      author(
+        "{{Information|author={{MO}}}}",
+        Map("Template:MO" -> "[[User:Максим Огородник|Максим Огородник]]")
+      ) ===
         Some("Максим Огородник")
     }
 
     "follow a template that redirects to the user's subpage" in {
-      author("{{Information|author={{Yuriy Kvach}}}}", Map("Template:Yuriy Kvach" -> "#REDIRECT [[User:Ykvach/template]]")) ===
+      author(
+        "{{Information|author={{Yuriy Kvach}}}}",
+        Map("Template:Yuriy Kvach" -> "#REDIRECT [[User:Ykvach/template]]")
+      ) ===
         Some("Ykvach")
     }
 
     "be credited to the uploader when the template links to nobody" in {
-      author("{{Information|author={{Own}}}}", Map("Template:Own" -> "Own work")) === Some("MaksWiki")
+      author("{{Information|author={{Own}}}}", Map("Template:Own" -> "Own work")) === Some(
+        "MaksWiki"
+      )
     }
   }
 }

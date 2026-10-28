@@ -21,5 +21,4 @@ object UserGroup {
   def empty(name: String) = new UserGroup(name, Set.empty[User])
 }
 
-class Board(val year: Int, users: Set[User])
-    extends UserGroup("Правління", users)
+class Board(val year: Int, users: Set[User]) extends UserGroup("Правління", users)

@@ -125,8 +125,7 @@ class PageQuerySpec extends Specification {
       None,
       None,
       "[[Page]]",
-      invalidReason =
-        Some("""The requested page title contains invalid characters: "[".""")
+      invalidReason = Some("""The requested page title contains invalid characters: "[".""")
     )
   }
 

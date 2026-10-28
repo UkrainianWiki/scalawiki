@@ -95,7 +95,9 @@ class KatotthResolverSpec extends Specification {
     }
 
     "recognize a page with no hromada segment" in {
-      KatotthResolver.parsePage("Вікіпедія:Вікі любить пам'ятки/Київ/Дарницький район").hromadaStem === None
+      KatotthResolver
+        .parsePage("Вікіпедія:Вікі любить пам'ятки/Київ/Дарницький район")
+        .hromadaStem === None
       KatotthResolver.parsePage("Вікіпедія:Вікі любить пам'ятки/Завантажувач").hromadaStem === None
     }
   }
@@ -138,11 +140,14 @@ class KatotthResolverSpec extends Specification {
 
     "label same-raion same-named hromadas with their seat-type adjective, and others plainly" in {
       val sumyRaion = "Вікіпедія:Вікі любить пам'ятки/Сумська область/Сумський район/"
-      val selyshchna = KatotthResolver.resolveFromPage(sumyRaion + "Миколаївська селищна громада").get
+      val selyshchna =
+        KatotthResolver.resolveFromPage(sumyRaion + "Миколаївська селищна громада").get
       val silska = KatotthResolver.resolveFromPage(sumyRaion + "Миколаївська сільська громада").get
-      val kovalivska = KatotthResolver.resolveFromPage(
-        "Вікіпедія:Вікі любить пам'ятки/Київська область/Білоцерківський район/Ковалівська громада"
-      ).get
+      val kovalivska = KatotthResolver
+        .resolveFromPage(
+          "Вікіпедія:Вікі любить пам'ятки/Київська область/Білоцерківський район/Ковалівська громада"
+        )
+        .get
 
       KatotthResolver.hromadaDisplayName(selyshchna) === "Миколаївська селищна громада"
       KatotthResolver.hromadaDisplayName(silska) === "Миколаївська сільська громада"
@@ -170,9 +175,12 @@ class KatotthResolverSpec extends Specification {
       // Kyiv and Sevastopol have no hromadas of their own - a "район" page
       // there names a city district ("B"), which is the most specific
       // level available and should not be treated as unresolved.
-      val kyiv = KatotthResolver.resolveFromPage("Вікіпедія:Вікі любить пам'ятки/Київ/Дарницький район")
+      val kyiv =
+        KatotthResolver.resolveFromPage("Вікіпедія:Вікі любить пам'ятки/Київ/Дарницький район")
       val sevastopol =
-        KatotthResolver.resolveFromPage("Вікіпедія:Вікі любить пам'ятки/Севастополь/Балаклавський район")
+        KatotthResolver.resolveFromPage(
+          "Вікіпедія:Вікі любить пам'ятки/Севастополь/Балаклавський район"
+        )
       kyiv must beSome
       sevastopol must beSome
       kyiv.get.name === "Дарницький"
@@ -187,9 +195,13 @@ class KatotthResolverSpec extends Specification {
       // haven't had their monument lists split into hromada pages yet.
       // Both should group by raion rather than fall to Unresolved.
       val crimea =
-        KatotthResolver.resolveFromPage("Вікіпедія:Вікі любить пам'ятки/Автономна Республіка Крим/Бахчисарайський район")
+        KatotthResolver.resolveFromPage(
+          "Вікіпедія:Вікі любить пам'ятки/Автономна Республіка Крим/Бахчисарайський район"
+        )
       val notYetSplit =
-        KatotthResolver.resolveFromPage("Вікіпедія:Вікі любить пам'ятки/Закарпатська область/Берегівський район")
+        KatotthResolver.resolveFromPage(
+          "Вікіпедія:Вікі любить пам'ятки/Закарпатська область/Берегівський район"
+        )
       crimea must beSome
       notYetSplit must beSome
       crimea.get.name === "Бахчисарайський"
@@ -225,7 +237,8 @@ class KatotthResolverSpec extends Specification {
         new Monument(
           id = "32-214-0030",
           name = "Test",
-          page = "Вікіпедія:Вікі любить пам'ятки/Київська область/Білоцерківський район/Ковалівська громада",
+          page =
+            "Вікіпедія:Вікі любить пам'ятки/Київська область/Білоцерківський район/Ковалівська громада",
           listConfig = Some(WlmUa)
         )
       )
@@ -246,20 +259,28 @@ class KatotthResolverSpec extends Specification {
     "refine a raion-only page to the numeric mapping's location inside that raion" in {
       // Бурштин is in Івано-Франківський raion; a page naming only that raion
       // must not stop at the raion when the mapping knows the settlement.
-      val raionPage = "Вікіпедія:Вікі любить пам'ятки/Івано-Франківська область/Івано-Франківський район"
-      val mdb = new MonumentDB(contest, burshtynMonumentDb.allMonuments.map(_.copy(page = raionPage)))
+      val raionPage =
+        "Вікіпедія:Вікі любить пам'ятки/Івано-Франківська область/Івано-Франківський район"
+      val mdb =
+        new MonumentDB(contest, burshtynMonumentDb.allMonuments.map(_.copy(page = raionPage)))
       val resolved = KatotthResolver.resolve(mdb)
       resolved must not(beEmpty)
       resolved.values.forall(_.name == "Бурштин") must beTrue
-      resolved.values.forall(adm => KatotthResolver.hromadaAncestor(adm).exists(_.name == "Бурштинська")) must beTrue
+      resolved.values.forall(adm =>
+        KatotthResolver.hromadaAncestor(adm).exists(_.name == "Бурштинська")
+      ) must beTrue
     }
 
     "keep the page's raion when the numeric mapping points outside it" in {
-      val otherRaionPage = "Вікіпедія:Вікі любить пам'ятки/Івано-Франківська область/Калуський район"
-      val mdb = new MonumentDB(contest, burshtynMonumentDb.allMonuments.map(_.copy(page = otherRaionPage)))
+      val otherRaionPage =
+        "Вікіпедія:Вікі любить пам'ятки/Івано-Франківська область/Калуський район"
+      val mdb =
+        new MonumentDB(contest, burshtynMonumentDb.allMonuments.map(_.copy(page = otherRaionPage)))
       val resolved = KatotthResolver.resolve(mdb)
       resolved must not(beEmpty)
-      resolved.values.forall(adm => adm.name == "Калуський" && adm.regionType.exists(_.code == "P")) must beTrue
+      resolved.values.forall(adm =>
+        adm.name == "Калуський" && adm.regionType.exists(_.code == "P")
+      ) must beTrue
     }
   }
 
@@ -275,7 +296,8 @@ class KatotthResolverSpec extends Specification {
       // Guards against a codifier refresh silently dropping mapped places.
       // Oblast and city-district codes (hromada digits "000") are keyed in a
       // shortened/concatenated form in `katotthMap` and are out of scope here.
-      val placeCodes = Katotth.toKoatuu.keys.filter(code => code.length == 17 && code.substring(4, 7) != "000")
+      val placeCodes =
+        Katotth.toKoatuu.keys.filter(code => code.length == 17 && code.substring(4, 7) != "000")
       placeCodes must not(beEmpty)
       placeCodes.filterNot(code => KatotthResolver.nodeForCode(code).isDefined) must beEmpty
     }
@@ -295,7 +317,8 @@ class KatotthResolverSpec extends Specification {
   "MonumentDB.placeByMonumentId" should {
     "place a monument listed under a settlement's new name the same as under its old name" in {
       def place(id: String, city: String): Option[String] = {
-        val monument = new Monument(id = id, name = "Test", city = Some(city), listConfig = Some(WlmUa))
+        val monument =
+          new Monument(id = id, name = "Test", city = Some(city), listConfig = Some(WlmUa))
         new MonumentDB(contest, Seq(monument)).placeByMonumentId.get(id)
       }
 
@@ -309,7 +332,12 @@ class KatotthResolverSpec extends Specification {
     }
 
     "still leave a monument without a place when no current name matches either" in {
-      val monument = new Monument(id = "12-119-0004", name = "Test", city = Some("Неіснуюче"), listConfig = Some(WlmUa))
+      val monument = new Monument(
+        id = "12-119-0004",
+        name = "Test",
+        city = Some("Неіснуюче"),
+        listConfig = Some(WlmUa)
+      )
       new MonumentDB(contest, Seq(monument)).placeByMonumentId.get("12-119-0004") must beNone
     }
   }

@@ -7,8 +7,8 @@ import org.scalawiki.wlx.stat.ContestStat
 import org.scalawiki.wlx.{ImageDB, MonumentDB}
 import org.specs2.mutable.Specification
 
-/** WLM UA 2026 rule 7.3.5: bonus by the number of already-known interior photos of
-  * the monument: 0 -> 5, 1..5 -> 3, 6+ -> 0.
+/** WLM UA 2026 rule 7.3.5: bonus by the number of already-known interior photos of the monument: 0
+  * -> 5, 1..5 -> 3, 6+ -> 0.
   */
 class NumberOfInteriorImagesBonusSpec extends Specification {
 
@@ -28,9 +28,7 @@ class NumberOfInteriorImagesBonusSpec extends Specification {
     Image(s"File:$pageId.jpg", pageId = Some(pageId))
       .withAuthor("someone")
       .withMonument(monumentId)
-      .copy(categories =
-        if (interior) Set(s"Interior of $monumentId") else Set(s"$monumentId")
-      )
+      .copy(categories = if (interior) Set(s"Interior of $monumentId") else Set(s"$monumentId"))
   }
 
   val current = monuments.map(m => img(m.id, interior = false))
@@ -77,18 +75,30 @@ class NumberOfInteriorImagesBonusSpec extends Specification {
       Image("File:x.jpg").copy(specialNominations = nominations, categories = categories)
 
     "recognise an interior special nomination of any year" in {
-      NumberOfInteriorImagesBonus.isInterior(image(nominations = Set("WLM2023-UA-interior"))) must beTrue
-      NumberOfInteriorImagesBonus.isInterior(image(nominations = Set("WLM2026-UA-interior"))) must beTrue
-      NumberOfInteriorImagesBonus.isInterior(image(nominations = Set("WLM2026-UA-інтер'єр"))) must beTrue
+      NumberOfInteriorImagesBonus.isInterior(
+        image(nominations = Set("WLM2023-UA-interior"))
+      ) must beTrue
+      NumberOfInteriorImagesBonus.isInterior(
+        image(nominations = Set("WLM2026-UA-interior"))
+      ) must beTrue
+      NumberOfInteriorImagesBonus.isInterior(
+        image(nominations = Set("WLM2026-UA-інтер'єр"))
+      ) must beTrue
     }
 
     "not treat an exterior nomination as interior" in {
-      NumberOfInteriorImagesBonus.isInterior(image(nominations = Set("WLM2026-UA-exterior"))) must beFalse
+      NumberOfInteriorImagesBonus.isInterior(
+        image(nominations = Set("WLM2026-UA-exterior"))
+      ) must beFalse
     }
 
     "recognise interior categories in English and Ukrainian" in {
-      NumberOfInteriorImagesBonus.isInterior(image(categories = Set("Interior of St Sophia"))) must beTrue
-      NumberOfInteriorImagesBonus.isInterior(image(categories = Set("Інтер'єр Софійського собору"))) must beTrue
+      NumberOfInteriorImagesBonus.isInterior(
+        image(categories = Set("Interior of St Sophia"))
+      ) must beTrue
+      NumberOfInteriorImagesBonus.isInterior(
+        image(categories = Set("Інтер'єр Софійського собору"))
+      ) must beTrue
     }
   }
 }

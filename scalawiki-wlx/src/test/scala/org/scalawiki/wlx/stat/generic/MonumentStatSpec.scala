@@ -19,9 +19,7 @@ class MonumentStatSpec extends Specification {
       namePrefix: String,
       startId: Int = 1
   ): Seq[Monument] =
-    (startId until startId + n).map(i =>
-      monument(s"$regionId-xxx-000$i", namePrefix + i)
-    )
+    (startId until startId + n).map(i => monument(s"$regionId-xxx-000$i", namePrefix + i))
 
   "with articles stat" should {
     "work with no regions, no articles" in {

@@ -61,9 +61,7 @@ class WlxTableParserSpec extends Specification {
       val monuments = parser.parse(table.asWiki)
 
       monuments.size === 2
-      monuments.map(m =>
-        Seq(m.id, m.name, m.otherParams("_f1"), m.otherParams("_f2"))
-      ) === data
+      monuments.map(m => Seq(m.id, m.name, m.otherParams("_f1"), m.otherParams("_f2"))) === data
     }
 
     "parse thailand" in {

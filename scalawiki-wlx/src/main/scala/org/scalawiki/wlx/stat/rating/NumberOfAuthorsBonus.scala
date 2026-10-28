@@ -4,13 +4,10 @@ import org.scalawiki.MwBot
 import org.scalawiki.wlx.stat.ContestStat
 import org.scalawiki.wlx.stat.reports.RateInputDistribution
 
-case class NumberOfAuthorsBonus(stat: ContestStat, rateRanges: RateRanges)
-  extends Rater {
-  val authorsByMonument: Map[String, Set[String]] = oldImagesByMonumentId
-    .mapValues { images =>
-      images.map(_.author.getOrElse("")).toSet
-    }
-    .toMap
+case class NumberOfAuthorsBonus(stat: ContestStat, rateRanges: RateRanges) extends Rater {
+  val authorsByMonument: Map[String, Set[String]] = oldImagesByMonumentId.mapValues { images =>
+    images.map(_.author.getOrElse("")).toSet
+  }.toMap
 
   val authorsNumberByMonument: Map[String, Int] =
     authorsByMonument.mapValues(_.size).toMap

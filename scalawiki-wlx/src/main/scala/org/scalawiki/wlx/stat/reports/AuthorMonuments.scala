@@ -23,9 +23,7 @@ class AuthorMonuments(
 
   val totalImageDb = stat.totalImageDb
 
-  val oldImages = totalImageDb.images.filter(image =>
-    !currentImageIds.contains(image.pageId.get)
-  )
+  val oldImages = totalImageDb.images.filter(image => !currentImageIds.contains(image.pageId.get))
 
   val oldImageDb = new ImageDB(contest, oldImages, stat.monumentDb)
 
@@ -155,9 +153,8 @@ class AuthorMonuments(
       .replaceAll("\\}\\}", "")
 
     val galleryPage =
-      "Commons:" + contest.name + "/" + noTemplateUser + regionOpt.fold("") {
-        region =>
-          "#" + region.replaceAll(" ", "_")
+      "Commons:" + contest.name + "/" + noTemplateUser + regionOpt.fold("") { region =>
+        "#" + region.replaceAll(" ", "_")
       }
     val galleryText = Output.galleryByRegionAndId(
       imageDb.monumentDb.get,

@@ -9,11 +9,11 @@ import java.nio.file.Files
 import java.time.LocalDate
 import scala.util.Try
 
-/** The cached files that were deleted on Commons, kept apart from the image CSV cache
-  * (which drops them): `<campaign>-<year>-deleted-images.csv` for a contest year's
-  * category, `<campaign>-all-deleted-images.csv` for the other files of the contest
-  * template. The image CSV's columns ([[ImageCsvExporter.columns]]), as the file was last
-  * cached, and `deleted_detected`: the date a sync found it deleted.
+/** The cached files that were deleted on Commons, kept apart from the image CSV cache (which drops
+  * them): `<campaign>-<year>-deleted-images.csv` for a contest year's category,
+  * `<campaign>-all-deleted-images.csv` for the other files of the contest template. The image CSV's
+  * columns ([[ImageCsvExporter.columns]]), as the file was last cached, and `deleted_detected`: the
+  * date a sync found it deleted.
   */
 object DeletedImagesCsv {
 
@@ -23,9 +23,11 @@ object DeletedImagesCsv {
 
   val columns: Seq[String] = ImageCsvExporter.columns :+ DetectedColumn
 
-  def filename(campaign: String, year: Int, dir: String): String = path(dir, s"$campaign-$year-deleted-images.csv")
+  def filename(campaign: String, year: Int, dir: String): String =
+    path(dir, s"$campaign-$year-deleted-images.csv")
 
-  def totalFilename(campaign: String, dir: String): String = path(dir, s"$campaign-all-deleted-images.csv")
+  def totalFilename(campaign: String, dir: String): String =
+    path(dir, s"$campaign-all-deleted-images.csv")
 
   private def path(dir: String, name: String): String =
     if (dir.nonEmpty) s"$dir${File.separator}$name" else name
@@ -53,16 +55,17 @@ object DeletedImagesCsv {
       try {
         writer.writeRow(columns)
         rows.foreach { row =>
-          val values = ImageCsvExporter.imageToRow(row.image) + (DetectedColumn -> row.detected.toString)
+          val values =
+            ImageCsvExporter.imageToRow(row.image) + (DetectedColumn -> row.detected.toString)
           writer.writeRow(columns.map(c => values.getOrElse(c, "")))
         }
       } finally writer.close()
     }
   }
 
-  /** The rows of `path` after a sync: `found` added (detected `today`), and the files the
-    * sweep listed again (`listed`: restored, or back in the category) removed. A file
-    * already there keeps its first detection date. Rewritten only when that changes it.
+  /** The rows of `path` after a sync: `found` added (detected `today`), and the files the sweep
+    * listed again (`listed`: restored, or back in the category) removed. A file already there keeps
+    * its first detection date. Rewritten only when that changes it.
     */
   def update(path: String, found: Seq[Image], listed: Long => Boolean, today: LocalDate): Unit = {
     val existing = read(path)

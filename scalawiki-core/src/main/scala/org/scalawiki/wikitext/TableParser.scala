@@ -9,8 +9,8 @@ object TableParser extends SwebleParser {
 
   val config: WikiConfig = DefaultConfigEnWp.generate
 
-  val headerFunc: PartialFunction[WtNode, WtTableHeader] = {
-    case h: WtTableHeader => h
+  val headerFunc: PartialFunction[WtNode, WtTableHeader] = { case h: WtTableHeader =>
+    h
   }
 
   val cellFunc: PartialFunction[WtNode, WtTableCell] = { case c: WtTableCell =>

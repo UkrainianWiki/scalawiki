@@ -46,18 +46,21 @@ case class ContestStat(
 
   /** Everyone named as an author of an image, in any year. */
   def authors: Seq[String] =
-    (totalImageDb.images.iterator ++ dbsByYear.iterator.flatMap(_.images)).flatMap(_.author).filterNot(_.isBlank)
-      .toSet.toSeq
+    (totalImageDb.images.iterator ++ dbsByYear.iterator
+      .flatMap(_.images)).flatMap(_.author).filterNot(_.isBlank).toSet.toSeq
 
-  /** The images of every author under their current Commons account ([[AuthorsStat.accounts]]), so that every report
-    * counts an author renamed since once. Keeps `found` as [[accounts]], each account also mapping to itself, for the
-    * author lists that look up the names they hold.
+  /** The images of every author under their current Commons account ([[AuthorsStat.accounts]]), so
+    * that every report counts an author renamed since once. Keeps `found` as [[accounts]], each
+    * account also mapping to itself, for the author lists that look up the names they hold.
     */
   def withAccounts(found: Map[String, String]): ContestStat = {
     val accountOf = AuthorsStat.accountOf(found) _
     def renamed(db: ImageDB): ImageDB =
       db.copy(images = db.images.map { image =>
-        image.author.map(accountOf).filterNot(image.author.contains).fold(image)(a => image.copy(author = Some(a)))
+        image.author
+          .map(accountOf)
+          .filterNot(image.author.contains)
+          .fold(image)(a => image.copy(author = Some(a)))
       })
     val byYear = dbsByYear.map(renamed)
     copy(
@@ -198,11 +201,11 @@ class Statistics(
     }
   }
 
-  /** Fetch contest data, run every configured report, and block until every
-    * wiki write has settled.
+  /** Fetch contest data, run every configured report, and block until every wiki write has settled.
     *
-    * @return the number of failures (report steps that threw + wiki writes that
-    *         errored). 0 means a clean run.
+    * @return
+    *   the number of failures (report steps that threw + wiki writes that errored). 0 means a clean
+    *   run.
     */
   def run(total: Boolean): Int = {
     Progress.configure(config.progress)
@@ -214,14 +217,17 @@ class Statistics(
       val failures = if (config.resyncOnly) 0 else new ReportRunner(stat, config).run()
       val incomplete = config.csvCacheResync && !imageProvider.resyncSuccessful
       if (config.resyncOnly)
-        Progress.note(if (incomplete) "\n=== Cache resync: INCOMPLETE (retry required) ==="
-          else "\n=== Cache resync: OK (no reports published) ===")
+        Progress.note(
+          if (incomplete) "\n=== Cache resync: INCOMPLETE (retry required) ==="
+          else "\n=== Cache resync: OK (no reports published) ==="
+        )
       failures + (if (incomplete) 1 else 0)
     } finally Progress.close()
   }
 
-  /** The gathered data with the authors under their current accounts, for the reports. When the accounts can't be
-    * looked up, the authors stay as written: the report that has to have them, regionalStat, tries again.
+  /** The gathered data with the authors under their current accounts, for the reports. When the
+    * accounts can't be looked up, the authors stay as written: the report that has to have them,
+    * regionalStat, tries again.
     */
   private def withAccounts(stat: ContestStat): Future[ContestStat] =
     if (config.resyncOnly) Future.successful(stat)
@@ -230,7 +236,9 @@ class Statistics(
         .accounts(bot, stat.authors, AuthorsStat.accountsCache(config))
         .map(stat.withAccounts)
         .recover { case NonFatal(e) =>
-          logger.warn(s"[accounts] could not look up the authors' accounts, counting them as written: $e")
+          logger.warn(
+            s"[accounts] could not look up the authors' accounts, counting them as written: $e"
+          )
           stat
         }
 
@@ -278,7 +286,9 @@ object Statistics {
       val cfg = StatParams.parse(args)
       if (cfg.dryRun) {
         org.scalawiki.util.DryRun.enable(cfg.dryRunDir)
-        Console.err.println(s"Dry run: nothing will be published; edit text is saved under ${cfg.dryRunDir}")
+        Console.err.println(
+          s"Dry run: nothing will be published; edit text is saved under ${cfg.dryRunDir}"
+        )
       }
       val contest = Contest.byCampaign(cfg.campaign, cfg.years.last, cfg.rateConfig)
 
@@ -295,7 +305,11 @@ object Statistics {
       }
 
       if (refusal.isEmpty && cfg.exportCsv.isDefined) {
-        MonumentCsvExporter.exportFromWiki(MonumentQuery.create(contest), cfg.campaign, cfg.exportCsv)
+        MonumentCsvExporter.exportFromWiki(
+          MonumentQuery.create(contest),
+          cfg.campaign,
+          cfg.exportCsv
+        )
       }
 
       // Run the full statistics pipeline when either:

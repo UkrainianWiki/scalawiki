@@ -46,9 +46,7 @@ class DslQuery(
         trimmed.startsWith("{") || trimmed.startsWith("[")
       }
 
-    retry.Backoff()(odelay.Timer.default)(() =>
-      bot.post(params.toMap)
-    ) flatMap { body =>
+    retry.Backoff()(odelay.Timer.default)(() => bot.post(params.toMap)) flatMap { body =>
       val parser = new Parser(action)
 
       parser.parse(body) match {

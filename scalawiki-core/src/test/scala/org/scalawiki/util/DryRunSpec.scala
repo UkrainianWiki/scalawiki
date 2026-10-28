@@ -19,7 +19,10 @@ class DryRunSpec extends Specification with MockBotSpec {
       try {
         // no HTTP stubs: any request (edit, token fetch) would throw
         val bot = getBot()
-        Await.result(bot.page("Commons:Foo/Bar baz").edit("some text", Some("updating")), 5.seconds) === "Success"
+        Await.result(
+          bot.page("Commons:Foo/Bar baz").edit("some text", Some("updating")),
+          5.seconds
+        ) === "Success"
 
         val file = dir.resolve(host).resolve("Commons_Foo_Bar baz.wiki")
         new String(Files.readAllBytes(file), StandardCharsets.UTF_8) === "some text"

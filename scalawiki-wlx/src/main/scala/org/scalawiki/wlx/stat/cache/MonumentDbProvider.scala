@@ -14,16 +14,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NonFatal
 
-/** Builds the [[MonumentDB]] for a contest, going through the on-disk monument
-  * list cache ([[MonumentDbCache]], `csv-cache/<campaign>-monuments.csv`) when it
-  * is enabled.
+/** Builds the [[MonumentDB]] for a contest, going through the on-disk monument list cache
+  * ([[MonumentDbCache]], `csv-cache/<campaign>-monuments.csv`) when it is enabled.
   *
-  * Fetching and parsing every monument list page from the wiki is the long pole
-  * of a stats run, so with a cache present this runs a cheap `embeddedin`
-  * id+timestamp sweep, refetches only the pages whose revision changed, drops
-  * pages a complete sweep confirms are gone, reuses the rest, and rewrites the
-  * cache. `--monument-cache-refresh` (or the shared `--csv-cache-refresh`) forces
-  * a full refetch; any sync error also falls back to a full fetch.
+  * Fetching and parsing every monument list page from the wiki is the long pole of a stats run, so
+  * with a cache present this runs a cheap `embeddedin` id+timestamp sweep, refetches only the pages
+  * whose revision changed, drops pages a complete sweep confirms are gone, reuses the rest, and
+  * rewrites the cache. `--monument-cache-refresh` (or the shared `--csv-cache-refresh`) forces a
+  * full refetch; any sync error also falls back to a full fetch.
   */
 class MonumentDbProvider(
     contest: Contest,
@@ -46,8 +44,9 @@ class MonumentDbProvider(
 
   private def listConfig = contest.uploadConfigs.head.listConfig
 
-  /** Best-effort: a cache-write failure (read-only dir, disk full) must not fail
-    * the run or trigger a full refetch — the wiki data we just built is fine. */
+  /** Best-effort: a cache-write failure (read-only dir, disk full) must not fail the run or trigger
+    * a full refetch — the wiki data we just built is fine.
+    */
   private def persist(pages: Iterable[MonumentListPage]): Unit =
     if (cacheActive)
       try {
@@ -60,11 +59,12 @@ class MonumentDbProvider(
       }
 
   /** The monument DB for `contest`, via the CSV cache when it is enabled:
-    *   - no cache file / `--monument-cache-refresh` / cache off -> full fetch,
-    *     then (best effort) write the cache;
-    *   - otherwise -> a cheap embeddedin id+revision sweep, refetch only the
-    *     list pages whose revision changed, drop the ones the sweep confirms are
-    *     gone, reuse the rest; rewrite the cache. */
+    *   - no cache file / `--monument-cache-refresh` / cache off -> full fetch, then (best effort)
+    *     write the cache;
+    *   - otherwise -> a cheap embeddedin id+revision sweep, refetch only the list pages whose
+    *     revision changed, drop the ones the sweep confirms are gone, reuse the rest; rewrite the
+    *     cache.
+    */
   def gather(): Future[MonumentDB] = {
     val path = cachePath
     val template = monumentQuery.defaultListTemplate
@@ -102,8 +102,7 @@ class MonumentDbProvider(
       // syncMonumentDb starts with a synchronous prefix (reading + parsing the
       // CSV); run it inside the Future so a corrupt/format-changed cache file
       // falls back to a full fetch instead of throwing out of gather().
-      Future
-        .unit
+      Future.unit
         .flatMap(_ => syncMonumentDb(path, template))
         .recoverWith { case NonFatal(e) =>
           logger.warn(s"[monument-cache] sync failed ($e); refetching in full")

@@ -8,16 +8,18 @@ import java.util.concurrent.atomic.AtomicLong
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-/** A running unit of work whose item count is known (or becomes known). Handed
-  * to the body of [[Progress.bar]] / [[Progress.barF]]. All methods are cheap and
-  * thread-safe, so callers can drive them from `Future` callbacks. */
+/** A running unit of work whose item count is known (or becomes known). Handed to the body of
+  * [[Progress.bar]] / [[Progress.barF]]. All methods are cheap and thread-safe, so callers can
+  * drive them from `Future` callbacks.
+  */
 trait ProgressTask {
 
   /** Advance the counter by `n` items. */
   def step(n: Long = 1): Unit
 
-  /** Set the counter to an absolute value (useful when the caller already tracks
-    * a running total, e.g. an `AtomicInteger`). */
+  /** Set the counter to an absolute value (useful when the caller already tracks a running total,
+    * e.g. an `AtomicInteger`).
+    */
   def stepTo(n: Long): Unit
 
   /** (Re)set the total once it is known. `n <= 0` marks the task indeterminate. */
@@ -30,17 +32,16 @@ trait ProgressTask {
 /** Console progress for the stats CLI.
   *
   * Detailed logging goes to `logs/scalawiki.log` (see
-  * `scalawiki-core/src/main/resources/logback.xml`); this object is the *only*
-  * thing that writes progress to the screen. It degrades cleanly:
+  * `scalawiki-core/src/main/resources/logback.xml`); this object is the *only* thing that writes
+  * progress to the screen. It degrades cleanly:
   *
-  *   - interactive terminal, progress enabled -> a live [[me.tongfei.progressbar.ProgressBar]]
-  *     on stderr (items done/total, speed, elapsed, ETA);
-  *   - otherwise (fully redirected/CI, or `--no-progress`) -> throttled INFO
-  *     lines to the log, no screen output.
+  *   - interactive terminal, progress enabled -> a live [[me.tongfei.progressbar.ProgressBar]] on
+  *     stderr (items done/total, speed, elapsed, ETA);
+  *   - otherwise (fully redirected/CI, or `--no-progress`) -> throttled INFO lines to the log, no
+  *     screen output.
   *
-  * Both the bar and the user-facing [[note]] lines render on stderr, so they
-  * never mix with report/wikitext written to stdout (`run-stats.sh > report.txt`
-  * captures only the report).
+  * Both the bar and the user-facing [[note]] lines render on stderr, so they never mix with
+  * report/wikitext written to stdout (`run-stats.sh > report.txt` captures only the report).
   */
 object Progress {
 
@@ -50,10 +51,11 @@ object Progress {
 
   /** Whether a real terminal is attached to stderr, where the bar renders.
     *
-    * `System.console()` needs *both* stdin and stdout on a tty, so it goes null
-    * under `run-stats.sh > report.txt` even though stderr is still a terminal —
-    * hence the env fallback. In CI / fully-redirected runs none of these hold and
-    * we degrade to log lines. Cached: this doesn't change over a run. */
+    * `System.console()` needs *both* stdin and stdout on a tty, so it goes null under
+    * `run-stats.sh > report.txt` even though stderr is still a terminal — hence the env fallback.
+    * In CI / fully-redirected runs none of these hold and we degrade to log lines. Cached: this
+    * doesn't change over a run.
+    */
   private lazy val interactive: Boolean = {
     def env(name: String) = Option(System.getenv(name)).exists(_.nonEmpty)
     val ci = env("CI") || env("GITHUB_ACTIONS") || env("BUILD_NUMBER")
@@ -66,17 +68,19 @@ object Progress {
 
   private val openBars = new ConcurrentLinkedQueue[ProgressBar]()
 
-  /** Enable or disable the live display (from `--no-progress`). Off still logs
-    * progress to the file. */
+  /** Enable or disable the live display (from `--no-progress`). Off still logs progress to the
+    * file.
+    */
   def configure(on: Boolean): Unit = enabled = on
 
   private def live: Boolean = enabled && interactive
 
   // -- important, user-facing lines -----------------------------------------
 
-  /** Print a line the user should see regardless of verbosity (phase results,
-    * the publish summary). Goes to stderr — alongside the progress bar and away
-    * from report/wikitext on stdout — and to the log file. */
+  /** Print a line the user should see regardless of verbosity (phase results, the publish summary).
+    * Goes to stderr — alongside the progress bar and away from report/wikitext on stdout — and to
+    * the log file.
+    */
   def note(line: String): Unit = {
     log.info(line)
     // A newline first so the line doesn't land on top of a live bar.
@@ -175,9 +179,10 @@ object Progress {
 
   private val barLegendShown = new java.util.concurrent.atomic.AtomicBoolean(false)
 
-  /** The me.tongfei bar renders `<name> 42% [===>   ] 42/100 (0:00:12 / 0:00:41) 3.5/s`
-    * — the parenthesised pair is *time elapsed / estimated time remaining*, with
-    * no labels. Spell it out once, the first time a bar appears. */
+  /** The me.tongfei bar renders `<name> 42% [===>   ] 42/100 (0:00:12 / 0:00:41) 3.5/s` — the
+    * parenthesised pair is *time elapsed / estimated time remaining*, with no labels. Spell it out
+    * once, the first time a bar appears.
+    */
   private def showBarLegend(): Unit =
     if (barLegendShown.compareAndSet(false, true))
       System.err.println(

@@ -111,8 +111,7 @@ class LoginSpec(implicit ee: ExecutionEnv)
         HttpStub(
           loginAction,
           err,
-          contentType =
-            ContentType(MediaTypes.`text/html`, HttpCharsets.`UTF-8`)
+          contentType = ContentType(MediaTypes.`text/html`, HttpCharsets.`UTF-8`)
         )
       )
 

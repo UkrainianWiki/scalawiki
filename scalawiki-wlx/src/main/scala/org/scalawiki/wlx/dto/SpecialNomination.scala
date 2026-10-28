@@ -19,18 +19,16 @@ import scala.util.Try
   * @param listTemplate
   *   name of template that monument lists consist of
   * @param pages
-  *   pages that contain lists of monuments, ot templates that contains links to
-  *   these pages
+  *   pages that contain lists of monuments, ot templates that contains links to these pages
   * @param fileTemplate
   *   template on the file page that enters a file into the nomination
   * @param mediaType
-  *   kind of file the nomination takes, whatever its monument: only
-  *   [[SpecialNomination.Video]] is supported
+  *   kind of file the nomination takes, whatever its monument: only [[SpecialNomination.Video]] is
+  *   supported
   * @param idPrefix
-  *   the first segment of the ids its lists give monuments of their own, in
-  *   place of the region's KOATUU code (e.g. "99" in `99-141-2306`, whose
-  *   second segment still carries the region); those lists also hold
-  *   monuments with their regions' ids
+  *   the first segment of the ids its lists give monuments of their own, in place of the region's
+  *   KOATUU code (e.g. "99" in `99-141-2306`, whose second segment still carries the region); those
+  *   lists also hold monuments with their regions' ids
   */
 case class SpecialNomination(
     name: String,
@@ -43,12 +41,13 @@ case class SpecialNomination(
     idPrefix: Option[String] = None
 ) {
 
-  /** Whether the nomination runs in `year`: in its [[years]], or in every year
-    * if it lists none. */
+  /** Whether the nomination runs in `year`: in its [[years]], or in every year if it lists none.
+    */
   def inYear(year: Int): Boolean = years.isEmpty || years.contains(year)
 
-  /** Whether the file itself places `image` in this nomination - by its
-    * [[fileTemplate]] or its [[mediaType]] - rather than its monument. */
+  /** Whether the file itself places `image` in this nomination - by its [[fileTemplate]] or its
+    * [[mediaType]] - rather than its monument.
+    */
   def matchesFile(image: Image): Boolean =
     fileTemplate.exists(image.specialNominations.contains) ||
       (mediaType.contains(SpecialNomination.Video) && image.isVideo)
@@ -105,9 +104,9 @@ object SpecialNomination {
 
   lazy val nominations = load("wlm_ua.conf")
 
-  /** A nomination's monuments: the rows of its own lists, and those it takes
-    * from the main monument lists (by city, or by place for "Пам'ятки
-    * Подесення"). */
+  /** A nomination's monuments: the rows of its own lists, and those it takes from the main monument
+    * lists (by city, or by place for "Пам'ятки Подесення").
+    */
   case class NominationMonuments(fromLists: Seq[Monument], fromMonumentDb: Seq[Monument] = Nil) {
     def all: Seq[Monument] = fromMonumentDb ++ fromLists
   }
@@ -116,9 +115,10 @@ object SpecialNomination {
   def byIdPrefix(nominations: Seq[SpecialNomination], year: Int): Map[String, SpecialNomination] =
     byIdPrefix(nominations.filter(_.inYear(year)))
 
-  /** The nominations that have an [[idPrefix]], by it, whatever their years: a
-    * prefix belongs to its lists, which files of other years may still cite.
-    * Of nominations sharing a prefix, the one of the latest year. */
+  /** The nominations that have an [[idPrefix]], by it, whatever their years: a prefix belongs to
+    * its lists, which files of other years may still cite. Of nominations sharing a prefix, the one
+    * of the latest year.
+    */
   def byIdPrefix(nominations: Seq[SpecialNomination]): Map[String, SpecialNomination] =
     nominations
       .filter(_.idPrefix.nonEmpty)
@@ -130,7 +130,9 @@ object SpecialNomination {
       nominations: Seq[SpecialNomination],
       stat: ContestStat
   ): Future[Map[SpecialNomination, Seq[Monument]]] =
-    getNominationMonuments(nominations, stat).map(_.map { case (nomination, m) => nomination -> m.all })
+    getNominationMonuments(nominations, stat).map(_.map { case (nomination, m) =>
+      nomination -> m.all
+    })
 
   def getNominationMonuments(
       nominations: Seq[SpecialNomination],
@@ -152,7 +154,9 @@ object SpecialNomination {
           if (nomination.pages.nonEmpty && nomination.name != "Пам'ятки Подесення") {
             byPages(nomination.pages, listTemplate).map(NominationMonuments(_))
           } else if (nomination.cities.nonEmpty) {
-            Future.successful(NominationMonuments(Nil, monumentsInCities(nomination.cities, stat.monumentDb.get)))
+            Future.successful(
+              NominationMonuments(Nil, monumentsInCities(nomination.cities, stat.monumentDb.get))
+            )
           } else if (nomination.name == "Пам'ятки Подесення") {
             val desna = DesnaRegionSpecialNomination()
             val placeIds = desna.places.flatMap(desna.getPlace).map(_.code)

@@ -5,11 +5,7 @@ import org.apache.pekko.http.scaladsl.Http
 import org.apache.pekko.http.scaladsl.client.RequestBuilding._
 import org.apache.pekko.http.scaladsl.coding.{Deflate, Gzip, NoCoding}
 import org.apache.pekko.http.scaladsl.model.Multipart.FormData.BodyPart
-import org.apache.pekko.http.scaladsl.model.headers.{
-  HttpEncodings,
-  `Accept-Encoding`,
-  `User-Agent`
-}
+import org.apache.pekko.http.scaladsl.model.headers.{HttpEncodings, `Accept-Encoding`, `User-Agent`}
 import org.apache.pekko.http.scaladsl.model._
 import org.apache.pekko.util.Timeout
 import net.spraycookies.tldlist.DefaultEffectiveTldList
@@ -21,8 +17,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, _}
 import scala.language.postfixOps
 
-class HttpClientPekko(val system: ActorSystem = MwBot.system)
-    extends HttpClient {
+class HttpClientPekko(val system: ActorSystem = MwBot.system) extends HttpClient {
 
   implicit val sys: ActorSystem = system
 
@@ -50,8 +45,7 @@ class HttpClientPekko(val system: ActorSystem = MwBot.system)
     decoder.decodeMessage(response)
   }
 
-  def sendReceive: HttpRequest => Future[HttpResponse] = req =>
-    Http().singleRequest(req)
+  def sendReceive: HttpRequest => Future[HttpResponse] = req => Http().singleRequest(req)
 
   override implicit val timeout: Duration = 15.minutes
 

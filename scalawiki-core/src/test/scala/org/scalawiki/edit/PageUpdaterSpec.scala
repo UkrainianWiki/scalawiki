@@ -30,14 +30,13 @@ class PageUpdaterSpec extends Specification with MockBotSpec {
       (text + " [rated]", s"rated $title")
   }
 
-  /** [[PageUpdater]] whose per-page work stands in for a real HTTP round trip
-    * against a connection pool that rejects any request beyond `maxOpen` already
-    * in flight — exactly what Pekko HTTP's `max-open-requests` buffer does, and
-    * exactly what the old `update()` tripped by launching one future per page at
-    * once. Records the peak concurrency it actually saw and which pages finished.
+  /** [[PageUpdater]] whose per-page work stands in for a real HTTP round trip against a connection
+    * pool that rejects any request beyond `maxOpen` already in flight — exactly what Pekko HTTP's
+    * `max-open-requests` buffer does, and exactly what the old `update()` tripped by launching one
+    * future per page at once. Records the peak concurrency it actually saw and which pages
+    * finished.
     */
-  class PooledPageUpdater(task: PageUpdateTask, maxOpen: Int)
-      extends PageUpdater(task) {
+  class PooledPageUpdater(task: PageUpdateTask, maxOpen: Int) extends PageUpdater(task) {
 
     private val inFlight = new AtomicInteger(0)
     val peakInFlight = new AtomicInteger(0)

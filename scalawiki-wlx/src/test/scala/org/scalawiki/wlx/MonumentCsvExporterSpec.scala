@@ -30,7 +30,8 @@ class MonumentCsvExporterSpec extends Specification with Mockito {
 
   def parseCsv(content: String): List[List[String]] = {
     val reader = CSVReader.open(new StringReader(content))
-    try reader.all() finally reader.close()
+    try reader.all()
+    finally reader.close()
   }
 
   "MonumentCsvExporter" should {
@@ -39,7 +40,7 @@ class MonumentCsvExporterSpec extends Specification with Mockito {
       val rows = Seq(Map("назва" -> "Церква", "ID" -> "14-101-0001"))
       val content = exportToString(rows, realMapping)
       val parsed = parseCsv(content)
-      parsed.size must_== 2           // header + 1 data row
+      parsed.size must_== 2 // header + 1 data row
       parsed.head must contain("name")
       parsed.head must contain("id")
       val idIdx = parsed.head.indexOf("id")
@@ -72,7 +73,7 @@ class MonumentCsvExporterSpec extends Specification with Mockito {
 
     "produce no output file for empty input" in {
       val path = Files.createTempFile("monument-csv-empty", ".csv")
-      Files.deleteIfExists(path)   // ensure it doesn't exist
+      Files.deleteIfExists(path) // ensure it doesn't exist
       MonumentCsvExporter.export(Seq.empty, realMapping, path.toString)
       Files.exists(path) must beFalse
     }
@@ -122,7 +123,11 @@ class MonumentCsvExporterSpec extends Specification with Mockito {
       val path = Files.createTempFile("monument-export-empty", ".csv")
       Files.deleteIfExists(path)
       try {
-        MonumentCsvExporter.exportFromWiki(buildMonumentQuery(Seq.empty), "wlm-ua", Some(path.toString))
+        MonumentCsvExporter.exportFromWiki(
+          buildMonumentQuery(Seq.empty),
+          "wlm-ua",
+          Some(path.toString)
+        )
         Files.exists(path) must beFalse
       } finally Files.deleteIfExists(path)
     }

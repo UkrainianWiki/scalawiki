@@ -48,9 +48,8 @@ class MonumentsPicturedByRegion(
     .flatMap(_.monumentIds)
     .toSet
 
-  /** Monument id -> current-day (KATOTTH) location and the page that
-    * produced it, computed once and shared with per-oblast child reports
-    * rather than recomputed per oblast.
+  /** Monument id -> current-day (KATOTTH) location and the page that produced it, computed once and
+    * shared with per-oblast child reports rather than recomputed per oblast.
     */
   lazy val katotthResolutionDetailed: Map[String, KatotthResolver.Resolution] =
     katotthResolutionParam.getOrElse(KatotthResolver.resolveDetailed(monumentDb))
@@ -58,11 +57,10 @@ class MonumentsPicturedByRegion(
   lazy val katotthResolution: Map[String, AdmDivision] =
     katotthResolutionDetailed.view.mapValues(_.admDivision).toMap
 
-  /** Monument id -> the page that produced its resolution, kept consistent
-    * with `katotthResolution` (both come from the same winning `Monument`
-    * for any id shared by two different monuments due to a data-entry
-    * error) rather than looked up separately via `MonumentDB.byId`, which
-    * could disagree about which of the two "wins".
+  /** Monument id -> the page that produced its resolution, kept consistent with `katotthResolution`
+    * (both come from the same winning `Monument` for any id shared by two different monuments due
+    * to a data-entry error) rather than looked up separately via `MonumentDB.byId`, which could
+    * disagree about which of the two "wins".
     */
   lazy val pageById: Map[String, String] =
     katotthResolutionDetailed.view.mapValues(_.page).toMap
@@ -83,9 +81,9 @@ class MonumentsPicturedByRegion(
     else header + communityBreakdown
   }
 
-  /** Current-totals raion/hromada breakdown for this oblast, using Ukraine's
-    * present-day (KATOTTH) administrative division. Only meaningful when
-    * this instance is scoped to a single oblast (see [[regionData]]).
+  /** Current-totals raion/hromada breakdown for this oblast, using Ukraine's present-day (KATOTTH)
+    * administrative division. Only meaningful when this instance is scoped to a single oblast (see
+    * [[regionData]]).
     */
   def communityBreakdown: String = {
     // `byRegion` can include a monument whose id only looks like it belongs

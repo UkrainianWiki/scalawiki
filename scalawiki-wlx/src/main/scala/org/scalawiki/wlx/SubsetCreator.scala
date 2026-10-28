@@ -117,7 +117,8 @@ object SubsetCreator {
     for (regionId <- regionIds) {
 
       val regionTitle = contest.country.regionName(regionId)
-      val regionLink = "Вікіпедія:Вікі любить пам'ятки/Пам'ятки дерев'яної архітектури України/" + regionTitle
+      val regionLink =
+        "Вікіпедія:Вікі любить пам'ятки/Пам'ятки дерев'яної архітектури України/" + regionTitle
 
       val regionMonuments =
         byRegion(regionId).filterNot(_.page.contains(specialNomination))

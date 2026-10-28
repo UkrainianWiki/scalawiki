@@ -94,9 +94,8 @@ object Image {
   /** Video file extensions Commons accepts, for files with no media type. */
   val videoExtensions: Seq[String] = Seq(".webm", ".ogv", ".mpg", ".mpeg")
 
-  /** Whether the file `title` is a video: by MediaWiki's `mediatype` when known
-    * (the MIME type can't tell - Ogg video and audio are both `application/ogg`),
-    * else by the file extension.
+  /** Whether the file `title` is a video: by MediaWiki's `mediatype` when known (the MIME type
+    * can't tell - Ogg video and audio are both `application/ogg`), else by the file extension.
     */
   def isVideo(title: String, mediaType: Option[String]): Boolean =
     mediaType
@@ -169,20 +168,24 @@ object Image {
       revTs = fromRev.revTs
     )
 
-  private[scalawiki] def renamed(author: String): String = AuthorsMap.renames.getOrElse(author, author)
+  private[scalawiki] def renamed(author: String): String =
+    AuthorsMap.renames.getOrElse(author, author)
 
-  /** The author of a file whose page names none, from its ORIGINAL uploader (the first version's): a later version
-    * may be someone's retouch or a bot's resize. Not a bot: a bot uploads other people's photos (e.g. a museum's),
-    * so it is never their author.
+  /** The author of a file whose page names none, from its ORIGINAL uploader (the first version's):
+    * a later version may be someone's retouch or a bot's resize. Not a bot: a bot uploads other
+    * people's photos (e.g. a museum's), so it is never their author.
     */
   def authorFromUploader(originalUploader: String): Option[String] =
-    Some(originalUploader).filterNot(login => login.isBlank || login.toLowerCase.endsWith("bot")).map(renamed)
+    Some(originalUploader)
+      .filterNot(login => login.isBlank || login.toLowerCase.endsWith("bot"))
+      .map(renamed)
 
   def getAuthorFromPage(content: String): String =
     getAuthorFromPage(TemplateParser.parsePage(content))
 
-  /** File description templates and their author parameters, tried in order: Commons' {{Information}}, then
-    * uk.wikipedia's {{Зображення}} (files copied there from Commons keep the English parameter names).
+  /** File description templates and their author parameters, tried in order: Commons'
+    * {{Information}}, then uk.wikipedia's {{Зображення}} (files copied there from Commons keep the
+    * English parameter names).
     */
   val authorTemplates: Seq[(String, Seq[String])] = Seq(
     "Information" -> Seq("author", "Author"),
@@ -204,18 +207,22 @@ object Image {
   /** An author that stands for the uploader: uk.wikipedia's `Автор = Я` ("me"). */
   private val selfAuthors = Set("Я", "я")
 
-  /** A link to a user page in any user namespace and project (`[[:uk:Користувач:Name|…]]`, `{{User:Name/author}}`), or
-    * a user template (`{{U|Name}}`, `{{user at project|Name|wikipedia|uk}}`). The name ends where the link's target
-    * does, or at a subpage.
+  /** A link to a user page in any user namespace and project (`[[:uk:Користувач:Name|…]]`,
+    * `{{User:Name/author}}`), or a user template (`{{U|Name}}`,
+    * `{{user at project|Name|wikipedia|uk}}`). The name ends where the link's target does, or at a
+    * subpage.
     */
   private val userRef =
     ("(?iu)(?<!\\p{L})(?:user|користувач|користувачка|участник|участница|wikipedysta):([^|\\[\\]{}/#]+)" +
       "|\\{\\{\\s*(?:u|user|ut|user at project|original uploader)\\s*\\|\\s*([^|{}]+)").r
 
   /** `{{Unknown|author}}` and the like: nobody to credit, not even the uploader. */
-  private val unknownAuthor = "(?iu)^\\{\\{\\s*(?:unknown|anonymous|author\\s*\\|\\s*unknown|creator:\\?)".r
+  private val unknownAuthor =
+    "(?iu)^\\{\\{\\s*(?:unknown|anonymous|author\\s*\\|\\s*unknown|creator:\\?)".r
 
-  /** A photographer's credit template (`{{Yuriy Kvach}}`), the whole author value: its page links to their user page. */
+  /** A photographer's credit template (`{{Yuriy Kvach}}`), the whole author value: its page links
+    * to their user page.
+    */
   private val creditTemplateRef = "^\\{\\{([^{}|]+)\\}\\}$".r
 
   private val langTemplate = "(?iu)\\{\\{\\s*lang\\s*\\|[^|{}]*\\|([^{}]*)\\}\\}".r
@@ -226,14 +233,18 @@ object Image {
 
   /** The first user named in `text`, see [[userRef]]. */
   def userIn(text: String): Option[String] =
-    userRef.findFirstMatchIn(text).map(m => Option(m.group(1)).getOrElse(m.group(2)).trim).filter(_.nonEmpty)
+    userRef
+      .findFirstMatchIn(text)
+      .map(m => Option(m.group(1)).getOrElse(m.group(2)).trim)
+      .filter(_.nonEmpty)
 
   /** The template of [[creditTemplateRef]], if that is the whole `author`. */
   def creditTemplate(author: String): Option[String] =
     creditTemplateRef.findFirstMatchIn(author.trim).map(_.group(1).trim)
 
-  /** The author named by an author parameter's wikitext: the user it links to, or else its text without markup.
-    * Empty for an unknown author; a credit template is left as it is, see [[creditTemplate]].
+  /** The author named by an author parameter's wikitext: the user it links to, or else its text
+    * without markup. Empty for an unknown author; a credit template is left as it is, see
+    * [[creditTemplate]].
     */
   def parseUser(authorValue: String): String = {
     val value = authorValue.trim
@@ -241,7 +252,9 @@ object Image {
     else
       userIn(value).getOrElse {
         Seq(langTemplate, pipedWikiLink, wikiLink, extLink)
-          .foldLeft(value)((text, markup) => markup.replaceAllIn(text, m => Regex.quoteReplacement(m.group(1))))
+          .foldLeft(value)((text, markup) =>
+            markup.replaceAllIn(text, m => Regex.quoteReplacement(m.group(1)))
+          )
           .trim
       }
   }

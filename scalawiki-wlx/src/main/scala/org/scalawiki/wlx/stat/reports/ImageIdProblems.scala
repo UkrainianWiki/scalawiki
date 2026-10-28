@@ -8,14 +8,13 @@ import org.scalawiki.wlx.{ImageDB, MonumentDB}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/** Which images of a contest year have a monument id that matches no monument
-  * ("bad ids"), and which have none at all ("missing ids").
+/** Which images of a contest year have a monument id that matches no monument ("bad ids"), and
+  * which have none at all ("missing ids").
   *
-  * Left out of both: images in an obviously-ineligible category, and special
-  * nomination images - those the file itself places in a nomination (its
-  * nomination template, a video) and, from the bad ids, those whose id comes
-  * from a nomination's own list (`nominationIds`) rather than the monument
-  * lists. Those are checked by the special nomination reports instead.
+  * Left out of both: images in an obviously-ineligible category, and special nomination images -
+  * those the file itself places in a nomination (its nomination template, a video) and, from the
+  * bad ids, those whose id comes from a nomination's own list (`nominationIds`) rather than the
+  * monument lists. Those are checked by the special nomination reports instead.
   */
 class ImageIdProblems(
     monumentDb: MonumentDB,
@@ -46,14 +45,14 @@ class ImageIdProblems(
 
 object ImageIdProblems {
 
-  /** Region prefixes of ids from special nomination lists of past years that
-    * are no longer configured, so their ids can't be fetched. */
+  /** Region prefixes of ids from special nomination lists of past years that are no longer
+    * configured, so their ids can't be fetched.
+    */
   val nominationIdPrefixes: Seq[String] = Seq("88", "93", "95", "97", "98", "99")
 
-  /** Write `Commons:<contest>/Images with bad ids` and/or `.../Images with
-    * missing ids` for every year of the run, so ids fixed in older files drop
-    * off their year's page too. The index pages linking the years are kept by
-    * hand.
+  /** Write `Commons:<contest>/Images with bad ids` and/or `.../Images with missing ids` for every
+    * year of the run, so ids fixed in older files drop off their year's page too. The index pages
+    * linking the years are kept by hand.
     */
   def updateWiki(stat: ContestStat, badIds: Boolean, missingIds: Boolean, bot: MwBot)(implicit
       ec: ExecutionContext
@@ -77,8 +76,10 @@ object ImageIdProblems {
 
       val edits = imageDbs.flatMap { imageDb =>
         Seq(
-          if (badIds) Some(publish(imageDb, "Images with bad ids", problems.badIds(imageDb))) else None,
-          if (missingIds) Some(publish(imageDb, "Images with missing ids", problems.missingIds(imageDb)))
+          if (badIds) Some(publish(imageDb, "Images with bad ids", problems.badIds(imageDb)))
+          else None,
+          if (missingIds)
+            Some(publish(imageDb, "Images with missing ids", problems.missingIds(imageDb)))
           else None
         ).flatten
       }

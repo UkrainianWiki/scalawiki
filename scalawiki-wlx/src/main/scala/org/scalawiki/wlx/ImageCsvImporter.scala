@@ -15,16 +15,14 @@ object ImageCsvImporter {
 
   private val exifDateKey = "DateTimeOriginal"
 
-  /** Hands out one shared instance per distinct value, for the image fields that
-    * repeat across many images: authors, cameras, MIME and media types, category and
-    * special nomination names and sets, monument id lists, widths and heights.
-    * One pool can serve several CSV files, so e.g. an author seen in several
-    * contest years is held once. Unique fields (titles, dates, page ids) aren't
-    * pooled - the pool would only add an entry per image.
+  /** Hands out one shared instance per distinct value, for the image fields that repeat across many
+    * images: authors, cameras, MIME and media types, category and special nomination names and
+    * sets, monument id lists, widths and heights. One pool can serve several CSV files, so e.g. an
+    * author seen in several contest years is held once. Unique fields (titles, dates, page ids)
+    * aren't pooled - the pool would only add an entry per image.
     *
-    * Thread-safe. Each kind of value has its own pool: Scala equality treats
-    * `Some(4000)` and `Some(4000L)` as equal, so a single pool could hand a
-    * field an instance of the wrong type.
+    * Thread-safe. Each kind of value has its own pool: Scala equality treats `Some(4000)` and
+    * `Some(4000L)` as equal, so a single pool could hand a field an instance of the wrong type.
     */
   final class ValuePool {
 
@@ -74,26 +72,26 @@ object ImageCsvImporter {
       .withZoneSameInstant(ZoneOffset.UTC)
       .format(exifPattern)
 
-  /** Whether a category can matter for a slim (past contest year) image: an
-    * ineligible-submission category (`ImageDB.ineligible`, `Output`) or an
-    * interior one (`NumberOfInteriorImagesBonus`). */
+  /** Whether a category can matter for a slim (past contest year) image: an ineligible-submission
+    * category (`ImageDB.ineligible`, `Output`) or an interior one (`NumberOfInteriorImagesBonus`).
+    */
   private def keptInSlim(category: String): Boolean =
-    category.toLowerCase.contains("ineligible") || NumberOfInteriorImagesBonus.isInteriorCategory(category)
+    category.toLowerCase.contains("ineligible") || NumberOfInteriorImagesBonus.isInteriorCategory(
+      category
+    )
 
   /** An image cut down to what a past contest year's image is read for.
     *
-    * Past years' images are frozen (their CSVs aren't rewritten without
-    * `--csv-cache-resync`), and what reads them - eligibility (`ImageDB`), list
-    * filling (`ImageFiller.bestImage`), ratings and the all-years reports -
-    * needs only the title, author, monument ids, page id, width, height, size,
-    * special nominations, media type (the video special nomination), the EXIF
-    * date (only `DateTimeOriginal` is kept), the upload date when there is no
-    * EXIF date (`OldPhotosBonus` falls back to it), and the ineligible-submission
-    * and interior categories. URLs, MIME type, uploader, camera, other
-    * categories and revision id/timestamp are dropped.
+    * Past years' images are frozen (their CSVs aren't rewritten without `--csv-cache-resync`), and
+    * what reads them - eligibility (`ImageDB`), list filling (`ImageFiller.bestImage`), ratings and
+    * the all-years reports - needs only the title, author, monument ids, page id, width, height,
+    * size, special nominations, media type (the video special nomination), the EXIF date (only
+    * `DateTimeOriginal` is kept), the upload date when there is no EXIF date (`OldPhotosBonus`
+    * falls back to it), and the ineligible-submission and interior categories. URLs, MIME type,
+    * uploader, camera, other categories and revision id/timestamp are dropped.
     *
-    * A slim image must never be written back to a CSV: the dropped fields would
-    * be lost from the cache.
+    * A slim image must never be written back to a CSV: the dropped fields would be lost from the
+    * cache.
     */
   def slim(image: Image, pool: ValuePool): Image = {
     val exifOnly = image.metadata.flatMap { m =>
@@ -112,9 +110,9 @@ object ImageCsvImporter {
     )
   }
 
-  /** A cached row's last known revision, for diffing against a live revision
-    * sweep: its revid, and - only for a row with none (written before the
-    * `last_revid` column) - its revision timestamp. */
+  /** A cached row's last known revision, for diffing against a live revision sweep: its revid, and -
+    * only for a row with none (written before the `last_revid` column) - its revision timestamp.
+    */
   final case class CachedRevision(revId: Option[Long], revTs: Option[ZonedDateTime])
 
   def rowToImage(row: Map[String, String]): Image = rowToImage(row, new ValuePool, slim = false)
@@ -160,9 +158,10 @@ object ImageCsvImporter {
     if (slim) this.slim(image, pool) else image
   }
 
-  /** Whether the image CSV at `path` has every column [[ImageCsvExporter]] writes
-    * now. A file written before a column was added lacks it, and reading it
-    * would leave that field empty on every image. Reads only the header. */
+  /** Whether the image CSV at `path` has every column [[ImageCsvExporter]] writes now. A file
+    * written before a column was added lacks it, and reading it would leave that field empty on
+    * every image. Reads only the header.
+    */
   def hasCurrentColumns(path: String): Boolean = {
     val reader = CSVReader.open(new File(path), "UTF-8")
     try {
@@ -172,10 +171,9 @@ object ImageCsvImporter {
     }
   }
 
-  /** Images from an image CSV, or empty if the file doesn't exist. Rows whose
-    * image fails `keep` are dropped as they are read, never held. `pool` shares
-    * repeated values (pass one pool to several reads to share across files);
-    * `slim` loads [[slim]] images.
+  /** Images from an image CSV, or empty if the file doesn't exist. Rows whose image fails `keep`
+    * are dropped as they are read, never held. `pool` shares repeated values (pass one pool to
+    * several reads to share across files); `slim` loads [[slim]] images.
     */
   def imagesFromCsv(
       path: String,
@@ -196,9 +194,8 @@ object ImageCsvImporter {
     }
   }
 
-  /** [[imagesFromCsv]] plus each row's [[CachedRevision]] by page id, read in the
-    * same pass: slim images drop their revision, but a resync still needs it to
-    * tell which rows changed.
+  /** [[imagesFromCsv]] plus each row's [[CachedRevision]] by page id, read in the same pass: slim
+    * images drop their revision, but a resync still needs it to tell which rows changed.
     */
   def imagesWithRevisionsFromCsv(
       path: String,

@@ -24,16 +24,15 @@ object CookieHandling {
     }
   }
 
-  def addCookies(cookieJar: CookieJar): HttpRequest ⇒ HttpRequest = {
-    req: HttpRequest ⇒
-      {
-        val cookies = cookieJar.cookiesFor(req.uri)
-        if (cookies.isEmpty) req
-        else {
-          val cookieHeader = Cookie(cookies.map(_.pair()).toList)
-          RequestBuilding.addHeader(cookieHeader)(req)
-        }
+  def addCookies(cookieJar: CookieJar): HttpRequest ⇒ HttpRequest = { req: HttpRequest ⇒
+    {
+      val cookies = cookieJar.cookiesFor(req.uri)
+      if (cookies.isEmpty) req
+      else {
+        val cookieHeader = Cookie(cookies.map(_.pair()).toList)
+        RequestBuilding.addHeader(cookieHeader)(req)
       }
+    }
   }
 
   def storeCookies(

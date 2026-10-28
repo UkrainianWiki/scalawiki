@@ -11,13 +11,12 @@ import javax.management.{Notification, NotificationEmitter, NotificationListener
 import scala.jdk.CollectionConverters._
 import scala.util.Try
 
-/** Tracks the JVM's memory use over a run and sums it up in one line, so an
-  * unattended (e.g. server) run records how much memory it actually needed.
+/** Tracks the JVM's memory use over a run and sums it up in one line, so an unattended (e.g.
+  * server) run records how much memory it actually needed.
   *
-  * Heap usage is taken from GC notifications: the heap just before a
-  * collection approximates the peak; the heap just after one bounds what the
-  * run really retained (an upper bound - a young collection leaves old
-  * garbage behind). Size `-Xmx` from "max after GC" plus headroom.
+  * Heap usage is taken from GC notifications: the heap just before a collection approximates the
+  * peak; the heap just after one bounds what the run really retained (an upper bound - a young
+  * collection leaves old garbage behind). Size `-Xmx` from "max after GC" plus headroom.
   */
 object MemoryStats {
 
@@ -28,7 +27,10 @@ object MemoryStats {
   @volatile private var installed = false
 
   private lazy val heapPools: Set[String] =
-    ManagementFactory.getMemoryPoolMXBeans.asScala.filter(_.getType == MemoryType.HEAP).map(_.getName).toSet
+    ManagementFactory.getMemoryPoolMXBeans.asScala
+      .filter(_.getType == MemoryType.HEAP)
+      .map(_.getName)
+      .toSet
 
   /** Start listening for GC events. Idempotent. */
   def install(): Unit = synchronized {
@@ -37,7 +39,9 @@ object MemoryStats {
       val listener = new NotificationListener {
         override def handleNotification(n: Notification, handback: Any): Unit =
           if (n.getType == GarbageCollectionNotificationInfo.GARBAGE_COLLECTION_NOTIFICATION) {
-            val gc = GarbageCollectionNotificationInfo.from(n.getUserData.asInstanceOf[CompositeData]).getGcInfo
+            val gc = GarbageCollectionNotificationInfo
+              .from(n.getUserData.asInstanceOf[CompositeData])
+              .getGcInfo
             val before = heapUsed(gc.getMemoryUsageBeforeGc)
             val after = heapUsed(gc.getMemoryUsageAfterGc)
             peakBeforeGc.accumulateAndGet(before, (a, b) => math.max(a, b))
@@ -54,9 +58,9 @@ object MemoryStats {
   private def heapUsed(usage: java.util.Map[String, MemoryUsage]): Long =
     usage.asScala.iterator.collect { case (pool, u) if heapPools.contains(pool) => u.getUsed }.sum
 
-  /** e.g. `Memory: heap peak 2860 MB, max after GC 2587 MB, limit 4060 MB
-    * (committed 3588 MB); GC: 94 collections, 6.1 s, process peak RSS 3900 MB`.
-    * The RSS part is only available on Linux. */
+  /** e.g. `Memory: heap peak 2860 MB, max after GC 2587 MB, limit 4060 MB (committed 3588 MB); GC:
+    * 94 collections, 6.1 s, process peak RSS 3900 MB`. The RSS part is only available on Linux.
+    */
   def summary(): String = {
     val heap = ManagementFactory.getMemoryMXBean.getHeapMemoryUsage
     val gcs = ManagementFactory.getGarbageCollectorMXBeans.asScala.toSeq

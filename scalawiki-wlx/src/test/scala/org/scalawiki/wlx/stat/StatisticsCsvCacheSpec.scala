@@ -34,8 +34,13 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
   private val afterContest = ZonedDateTime.parse("2017-03-01T00:00:00Z")
 
   private def img(title: String, id: Long, revId: Option[Long] = None): Image =
-    Image(title, pageId = Some(id), monumentIds = Seq("123"), revId = revId,
-      revTs = revId.map(_ => duringContest))
+    Image(
+      title,
+      pageId = Some(id),
+      monumentIds = Seq("123"),
+      revId = revId,
+      revTs = revId.map(_ => duringContest)
+    )
 
   /** A live-sweep entry; timestamp defaults to inside the contest window. */
   private def rev(id: Long, revId: Long, ts: ZonedDateTime = duringContest): PageRevInfo =
@@ -52,10 +57,13 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
   /** Rewrite the CSV at `p` as an older version wrote it: without `column`. */
   private def dropColumn(p: Path, column: String): Unit = {
     val reader = CSVReader.open(p.toFile, "UTF-8")
-    val rows = try reader.all() finally reader.close()
+    val rows =
+      try reader.all()
+      finally reader.close()
     val index = rows.head.indexOf(column)
     val writer = CSVWriter.open(p.toFile, "UTF-8")
-    try writer.writeAll(rows.map(_.patch(index, Nil, 1))) finally writer.close()
+    try writer.writeAll(rows.map(_.patch(index, Nil, 1)))
+    finally writer.close()
   }
 
   private def newImageQuery(): ImageQuery = {
@@ -71,7 +79,8 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
     q
   }
 
-  private def deletedCsv(dir: Path, year: Int): String = DeletedImagesCsv.filename(campaign, year, dir.toString)
+  private def deletedCsv(dir: Path, year: Int): String =
+    DeletedImagesCsv.filename(campaign, year, dir.toString)
 
   private def stats(
       dir: Path,
@@ -110,15 +119,20 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       val dir = cacheDir()
       val firstYear = contest.copy(year = 2014)
       Seq(firstYear, prevContest).foreach { c =>
-        ImageCsvExporter.export(new ImageDB(c, Seq(img("File:A.jpg", c.year.toLong, Some(1L))), None),
-          campaign, isCurrent = false, dir.toString)
+        ImageCsvExporter.export(
+          new ImageDB(c, Seq(img("File:A.jpg", c.year.toLong, Some(1L))), None),
+          campaign,
+          isCurrent = false,
+          dir.toString
+        )
       }
       val first = Promise[Seq[PageRevInfo]]()
       val started = Promise[Unit]()
       val q = newImageQuery()
       q.imageIdsFromCategory(firstYear) answers { (_: Any) => started.trySuccess(()); first.future }
       q.imageIdsFromCategory(prevContest) returns Future.successful(Seq(rev(2015L, 1L)))
-      val gathered = stats(dir, q, startYear = Some(2014), csvCacheResync = true).gatherData(total = false)
+      val gathered =
+        stats(dir, q, startYear = Some(2014), csvCacheResync = true).gatherData(total = false)
       scala.concurrent.Await.result(started.future, scala.concurrent.duration.Duration("5s"))
       there was no(q).imageIdsFromCategory(prevContest)
       first.success(Seq(rev(2014L, 1L)))
@@ -129,8 +143,12 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       val dir = cacheDir()
       val marker = dir.resolve(s"$campaign-resync.date")
       Files.write(marker, "2000-01-01".getBytes("UTF-8"))
-      ImageCsvExporter.export(new ImageDB(prevContest, Seq(img("File:Old.jpg", 1L, Some(10L))), None),
-        campaign, isCurrent = false, dir.toString)
+      ImageCsvExporter.export(
+        new ImageDB(prevContest, Seq(img("File:Old.jpg", 1L, Some(10L))), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
       val q = newImageQuery()
       q.imageIdsFromCategory(prevContest) returns Future.successful(Seq(rev(1L, 20L), rev(2L, 30L)))
       q.imagesWithTemplateByIds(prevContest, Set(1L, 2L)) returns Future.successful(Nil)
@@ -143,8 +161,12 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
 
     "skip reports even when report flags are supplied to a successful cache-only run" in {
       val dir = cacheDir()
-      ImageCsvExporter.export(new ImageDB(prevContest, Seq(img("File:A.jpg", 1L, Some(10L))), None),
-        campaign, isCurrent = false, dir.toString)
+      ImageCsvExporter.export(
+        new ImageDB(prevContest, Seq(img("File:A.jpg", 1L, Some(10L))), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
       val q = newImageQuery()
       q.imageIdsFromCategory(prevContest) returns Future.successful(Seq(rev(1L, 10L)))
       stats(dir, q, startYear = Some(2015), resyncOnly = true).run(total = false) must_== 0
@@ -154,12 +176,18 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
     "keep the old cache and completion date when fetching a changed row fails" in {
       val dir = cacheDir()
       val path = yearCsv(dir, 2015)
-      ImageCsvExporter.export(new ImageDB(prevContest, Seq(img("File:A.jpg", 1L, Some(10L))), None),
-        campaign, isCurrent = false, dir.toString)
+      ImageCsvExporter.export(
+        new ImageDB(prevContest, Seq(img("File:A.jpg", 1L, Some(10L))), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
       val before = Files.readAllBytes(path).toSeq
       val q = newImageQuery()
       q.imageIdsFromCategory(prevContest) returns Future.successful(Seq(rev(1L, 20L)))
-      q.imagesWithTemplateByIds(prevContest, Set(1L)) returns Future.failed(new RuntimeException("timeout"))
+      q.imagesWithTemplateByIds(prevContest, Set(1L)) returns Future.failed(
+        new RuntimeException("timeout")
+      )
       stats(dir, q, startYear = Some(2015), csvCacheResync = true).gatherData(total = false) must
         throwA[RuntimeException]("timeout").await
       Files.readAllBytes(path).toSeq must_== before
@@ -183,7 +211,9 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
 
       // second run: a fresh query mock that fails if asked for 2015
       val q2 = newImageQuery()
-      q2.imagesFromCategory(prevContest) returns Future.failed(new RuntimeException("should not fetch"))
+      q2.imagesFromCategory(prevContest) returns Future.failed(
+        new RuntimeException("should not fetch")
+      )
       q2.imagesFromCategory(contest) returns Future.successful(Nil)
 
       val data = stats(dir, q2, startYear = Some(2015)).gatherData(total = false).await
@@ -221,24 +251,35 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
 
     "be refetched and overwritten when csvCacheRefresh is set" in {
       val dir = cacheDir()
-      ImageCsvExporter.export(new ImageDB(prevContest, Seq(img("File:Stale.jpg", 9L)), None), campaign,
-        isCurrent = false, dir.toString)
+      ImageCsvExporter.export(
+        new ImageDB(prevContest, Seq(img("File:Stale.jpg", 9L)), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val q = newImageQuery()
       q.imagesFromCategory(prevContest) returns Future.successful(Seq(img("File:Fresh.jpg", 1L)))
       q.imagesFromCategory(contest) returns Future.successful(Nil)
 
       val data = stats(dir, q, startYear = Some(2015), csvCacheRefresh = true)
-        .gatherData(total = false).await
+        .gatherData(total = false)
+        .await
 
       data.imageDbByYear(2015).map(_.images.map(_.title).toSeq) must beSome(Seq("File:Fresh.jpg"))
-      ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2015).toString).map(_.title) must_== Seq("File:Fresh.jpg")
+      ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2015).toString).map(_.title) must_== Seq(
+        "File:Fresh.jpg"
+      )
     }
 
     "be refetched and rewritten when its CSV predates a column (media_type)" in {
       val dir = cacheDir()
-      ImageCsvExporter.export(new ImageDB(prevContest, Seq(img("File:Old.webm", 1L)), None), campaign,
-        isCurrent = false, dir.toString)
+      ImageCsvExporter.export(
+        new ImageDB(prevContest, Seq(img("File:Old.webm", 1L)), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
       dropColumn(yearCsv(dir, 2015), "media_type")
 
       val q = newImageQuery()
@@ -250,13 +291,19 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
 
       data.imageDbByYear(2015).map(_.images.flatMap(_.mediaType).toSeq) must beSome(Seq("VIDEO"))
       ImageCsvImporter.hasCurrentColumns(yearCsv(dir, 2015).toString) must beTrue
-      ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2015).toString).flatMap(_.mediaType) must_== Seq("VIDEO")
+      ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2015).toString).flatMap(_.mediaType) must_== Seq(
+        "VIDEO"
+      )
     }
 
     "be read verbatim (no wiki sweep) without --csv-cache-resync" in {
       val dir = cacheDir()
-      ImageCsvExporter.export(new ImageDB(prevContest, Seq(img("File:P.jpg", 1L)), None), campaign,
-        isCurrent = false, dir.toString)
+      ImageCsvExporter.export(
+        new ImageDB(prevContest, Seq(img("File:P.jpg", 1L)), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val q = newImageQuery()
       q.imagesFromCategory(contest) returns Future.successful(Nil)
@@ -273,15 +320,24 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
         url = Some("https://upload.wikimedia.org/p.jpg"),
         categories = Set("Some category", "Ineligible submissions for WLM 2015 in Ukraine")
       )
-      ImageCsvExporter.export(new ImageDB(prevContest, Seq(full), None), campaign, isCurrent = false, dir.toString)
+      ImageCsvExporter.export(
+        new ImageDB(prevContest, Seq(full), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       def pastImage(resync: Boolean = false, export: Option[String] = None): Image = {
         val q = newImageQuery()
         q.imagesFromCategory(contest) returns Future.successful(Nil)
         q.imageIdsFromCategory(prevContest) returns Future.successful(Seq(rev(1L, 100L)))
         stats(dir, q, startYear = Some(2015), csvCacheResync = resync, exportImagesCsv = export)
-          .gatherData(total = false).await
-          .imageDbByYear(2015).get.images.head
+          .gatherData(total = false)
+          .await
+          .imageDbByYear(2015)
+          .get
+          .images
+          .head
       }
 
       val slim = pastImage()
@@ -300,24 +356,34 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
     "with --csv-cache-resync: keep unchanged, refetch changed, drop deleted" in {
       val dir = cacheDir()
       ImageCsvExporter.export(
-        new ImageDB(prevContest, Seq(
-          img("File:Keep.jpg", 1L, revId = Some(100L)),
-          img("File:Edited.jpg", 2L, revId = Some(200L)),
-          img("File:Deleted.jpg", 3L, revId = Some(300L))
-        ), None),
-        campaign, isCurrent = false, dir.toString)
+        new ImageDB(
+          prevContest,
+          Seq(
+            img("File:Keep.jpg", 1L, revId = Some(100L)),
+            img("File:Edited.jpg", 2L, revId = Some(200L)),
+            img("File:Deleted.jpg", 3L, revId = Some(300L))
+          ),
+          None
+        ),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val q = newImageQuery()
-      q.imageIdsFromCategory(prevContest) returns Future.successful(Seq(
-        rev(1L, 100L),          // unchanged
-        rev(2L, 222L)           // revid bumped -> changed
-        // id 3 absent -> deleted
-      ))
+      q.imageIdsFromCategory(prevContest) returns Future.successful(
+        Seq(
+          rev(1L, 100L), // unchanged
+          rev(2L, 222L) // revid bumped -> changed
+          // id 3 absent -> deleted
+        )
+      )
       q.imagesWithTemplateByIds(prevContest, Set(2L)) returns
         Future.successful(Seq(img("File:Edited-v2.jpg", 2L, revId = Some(222L))))
 
       val data = stats(dir, q, startYear = Some(2015), csvCacheResync = true)
-        .gatherData(total = false).await
+        .gatherData(total = false)
+        .await
 
       data.imageDbByYear(2015).get.images.map(_.title).toSet must_==
         Set("File:Keep.jpg", "File:Edited-v2.jpg")
@@ -328,7 +394,10 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       val dir = cacheDir()
       ImageCsvExporter.export(
         new ImageDB(prevContest, Seq(img("File:P.jpg", 1L, revId = Some(100L))), None),
-        campaign, isCurrent = false, dir.toString)
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
       val csv = yearCsv(dir, 2015)
       val writtenAt = java.nio.file.attribute.FileTime.fromMillis(0)
       Files.setLastModifiedTime(csv, writtenAt)
@@ -338,7 +407,8 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       q.imageIdsFromCategory(prevContest) returns Future.successful(Seq(rev(1L, 100L)))
 
       val data = stats(dir, q, startYear = Some(2015), csvCacheResync = true)
-        .gatherData(total = false).await
+        .gatherData(total = false)
+        .await
 
       data.imageDbByYear(2015).get.images.map(_.title) must_== Seq("File:P.jpg")
       Files.getLastModifiedTime(csv) must_== writtenAt
@@ -353,16 +423,23 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       )
       ImageCsvExporter.export(
         new ImageDB(prevContest, Seq(kept, img("File:Edited.jpg", 2L, revId = Some(200L))), None),
-        campaign, isCurrent = false, dir.toString)
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
-      val edited = img("File:Edited-v2.jpg", 2L, revId = Some(222L)).copy(url = Some("https://upload.wikimedia.org/e.jpg"))
+      val edited = img("File:Edited-v2.jpg", 2L, revId = Some(222L))
+        .copy(url = Some("https://upload.wikimedia.org/e.jpg"))
       val q = newImageQuery()
       q.imagesFromCategory(contest) returns Future.successful(Nil)
-      q.imageIdsFromCategory(prevContest) returns Future.successful(Seq(rev(1L, 100L), rev(2L, 222L)))
+      q.imageIdsFromCategory(prevContest) returns Future.successful(
+        Seq(rev(1L, 100L), rev(2L, 222L))
+      )
       q.imagesWithTemplateByIds(prevContest, Set(2L)) returns Future.successful(Seq(edited))
 
       val data = stats(dir, q, startYear = Some(2015), csvCacheResync = true)
-        .gatherData(total = false).await
+        .gatherData(total = false)
+        .await
 
       val images = data.imageDbByYear(2015).get.images
       images.map(_.title).toSet must_== Set("File:Keep.jpg", "File:Edited-v2.jpg")
@@ -378,7 +455,10 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       val dir = cacheDir()
       ImageCsvExporter.export(
         new ImageDB(prevContest, Seq(img("File:P.jpg", 1L, revId = Some(100L))), None),
-        campaign, isCurrent = false, dir.toString)
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
       val dateFile = dir.resolve(s"$campaign-resync.date")
       val today = java.time.LocalDate.now
 
@@ -386,8 +466,15 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
         val q = newImageQuery()
         q.imagesFromCategory(contest) returns Future.successful(Nil)
         q.imageIdsFromCategory(prevContest) returns Future.successful(Seq(rev(1L, 100L)))
-        stats(dir, q, startYear = Some(2015), csvCacheResync = true, csvCacheResyncIntervalDays = Some(7))
-          .gatherData(total = false).await
+        stats(
+          dir,
+          q,
+          startYear = Some(2015),
+          csvCacheResync = true,
+          csvCacheResyncIntervalDays = Some(7)
+        )
+          .gatherData(total = false)
+          .await
         q
       }
 
@@ -411,29 +498,45 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       // so that instant is the "changed since" cut-off for the no-revid rows.
       val dir = cacheDir()
       ImageCsvExporter.export(
-        new ImageDB(prevContest, Seq(
-          img("File:Untouched.jpg", 1L),   // no revid, no revTs
-          img("File:LaterEdit.jpg", 2L)
-        ), None),
-        campaign, isCurrent = false, dir.toString)
+        new ImageDB(
+          prevContest,
+          Seq(
+            img("File:Untouched.jpg", 1L), // no revid, no revTs
+            img("File:LaterEdit.jpg", 2L)
+          ),
+          None
+        ),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val q = newImageQuery()
-      q.imageIdsFromCategory(prevContest) returns Future.successful(Seq(
-        rev(1L, 10L, ts = ZonedDateTime.parse("2015-05-15T00:00:00Z")), // during contest -> keep
-        rev(2L, 20L, ts = ZonedDateTime.parse("2015-07-01T00:00:00Z"))  // after window closed -> refetch
-      ))
+      q.imageIdsFromCategory(prevContest) returns Future.successful(
+        Seq(
+          rev(1L, 10L, ts = ZonedDateTime.parse("2015-05-15T00:00:00Z")), // during contest -> keep
+          rev(
+            2L,
+            20L,
+            ts = ZonedDateTime.parse("2015-07-01T00:00:00Z")
+          ) // after window closed -> refetch
+        )
+      )
       q.imagesWithTemplateByIds(prevContest, Set(2L)) returns
         Future.successful(Seq(img("File:LaterEdit-v2.jpg", 2L, revId = Some(20L))))
 
       val data = stats(dir, q, startYear = Some(2015), csvCacheResync = true)
-        .gatherData(total = false).await
+        .gatherData(total = false)
+        .await
 
       data.imageDbByYear(2015).get.images.map(_.title).toSet must_==
         Set("File:Untouched.jpg", "File:LaterEdit-v2.jpg")
       there was one(q).imagesWithTemplateByIds(prevContest, Set(2L))
       // kept row got its revid backfilled from the sweep
-      ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2015).toString)
-        .find(_.title == "File:Untouched.jpg").flatMap(_.revId) must beSome(10L)
+      ImageCsvImporter
+        .imagesFromCsv(yearCsv(dir, 2015).toString)
+        .find(_.title == "File:Untouched.jpg")
+        .flatMap(_.revId) must beSome(10L)
     }
 
     "with --csv-cache-resync: keep cached rows when the category sweep looks truncated" in {
@@ -441,8 +544,15 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       val marker = dir.resolve(s"$campaign-resync.date")
       Files.write(marker, "2000-01-01".getBytes("UTF-8"))
       ImageCsvExporter.export(
-        new ImageDB(prevContest, (1 to 10).map(i => img(s"File:P$i.jpg", i.toLong, revId = Some(i.toLong))), None),
-        campaign, isCurrent = false, dir.toString)
+        new ImageDB(
+          prevContest,
+          (1 to 10).map(i => img(s"File:P$i.jpg", i.toLong, revId = Some(i.toLong))),
+          None
+        ),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val q = newImageQuery()
       // only 2 of 10 ids came back, and categoryinfo says there should be 10
@@ -450,10 +560,13 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       q.categoryFileCount(prevContest) returns Future.successful(Some(10L))
 
       val data = stats(dir, q, startYear = Some(2015), csvCacheResync = true)
-        .gatherData(total = false).await
+        .gatherData(total = false)
+        .await
 
       // nothing dropped, nothing refetched
-      data.imageDbByYear(2015).get.images.map(_.title).toSet must_== (1 to 10).map(i => s"File:P$i.jpg").toSet
+      data.imageDbByYear(2015).get.images.map(_.title).toSet must_== (1 to 10)
+        .map(i => s"File:P$i.jpg")
+        .toSet
       there was no(q).imagesWithTemplateByIds(any[Contest], any[Set[Long]])
       new String(Files.readAllBytes(marker), "UTF-8") must_== "2000-01-01"
     }
@@ -464,12 +577,17 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
     "incrementally sync: keep cached images, pull only newly added ids" in {
       val dir = cacheDir()
       ImageCsvExporter.export(
-        new ImageDB(contest, Seq(img("File:Old.jpg", 1L, revId = Some(1L))), None), campaign,
-        isCurrent = false, dir.toString)
+        new ImageDB(contest, Seq(img("File:Old.jpg", 1L, revId = Some(1L))), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val q = newImageQuery()
       q.imageIdsFromCategory(contest) returns Future.successful(Seq(rev(1L, 1L), rev(2L, 2L)))
-      q.imagesWithTemplateByIds(contest, Set(2L)) returns Future.successful(Seq(img("File:New.jpg", 2L)))
+      q.imagesWithTemplateByIds(contest, Set(2L)) returns Future.successful(
+        Seq(img("File:New.jpg", 2L))
+      )
 
       val data = stats(dir, q).gatherData(total = false).await
 
@@ -481,8 +599,11 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
     "refetch a cached image whose revision changed" in {
       val dir = cacheDir()
       ImageCsvExporter.export(
-        new ImageDB(contest, Seq(img("File:Stale.jpg", 1L, revId = Some(1L))), None), campaign,
-        isCurrent = false, dir.toString)
+        new ImageDB(contest, Seq(img("File:Stale.jpg", 1L, revId = Some(1L))), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val q = newImageQuery()
       q.imageIdsFromCategory(contest) returns Future.successful(Seq(rev(1L, 99L)))
@@ -498,8 +619,11 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
     "keep a cached image whose current revision is revision-deleted (no revid in the sweep)" in {
       val dir = cacheDir()
       ImageCsvExporter.export(
-        new ImageDB(contest, Seq(img("File:RevDel.jpg", 1L, revId = Some(5L))), None), campaign,
-        isCurrent = false, dir.toString)
+        new ImageDB(contest, Seq(img("File:RevDel.jpg", 1L, revId = Some(5L))), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val q = newImageQuery()
       q.imageIdsFromCategory(contest) returns Future.successful(Seq(PageRevInfo(1L, None, None)))
@@ -513,11 +637,18 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
     "keep cached rows when the sweep is empty but the category is not" in {
       val dir = cacheDir()
       ImageCsvExporter.export(
-        new ImageDB(contest, Seq(
-          img("File:A.jpg", 1L, revId = Some(1L)),
-          img("File:B.jpg", 2L, revId = Some(2L))
-        ), None),
-        campaign, isCurrent = false, dir.toString)
+        new ImageDB(
+          contest,
+          Seq(
+            img("File:A.jpg", 1L, revId = Some(1L)),
+            img("File:B.jpg", 2L, revId = Some(2L))
+          ),
+          None
+        ),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val q = newImageQuery()
       q.imageIdsFromCategory(contest) returns Future.successful(Seq.empty[PageRevInfo])
@@ -530,11 +661,18 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
     "drop cached images no longer in the category" in {
       val dir = cacheDir()
       ImageCsvExporter.export(
-        new ImageDB(contest, Seq(
-          img("File:Keep.jpg", 1L, revId = Some(1L)),
-          img("File:Gone.jpg", 2L, revId = Some(2L))
-        ), None),
-        campaign, isCurrent = false, dir.toString)
+        new ImageDB(
+          contest,
+          Seq(
+            img("File:Keep.jpg", 1L, revId = Some(1L)),
+            img("File:Gone.jpg", 2L, revId = Some(2L))
+          ),
+          None
+        ),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val q = newImageQuery()
       q.imageIdsFromCategory(contest) returns Future.successful(Seq(rev(1L, 1L)))
@@ -548,12 +686,19 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
     "keep the files Commons deleted in the deleted-files CSV, and drop those that only left the category" in {
       val dir = cacheDir()
       ImageCsvExporter.export(
-        new ImageDB(contest, Seq(
-          img("File:Keep.jpg", 1L, revId = Some(1L)),
-          img("File:Deleted.jpg", 2L, revId = Some(2L)),
-          img("File:Moved.jpg", 3L, revId = Some(3L))
-        ), None),
-        campaign, isCurrent = false, dir.toString)
+        new ImageDB(
+          contest,
+          Seq(
+            img("File:Keep.jpg", 1L, revId = Some(1L)),
+            img("File:Deleted.jpg", 2L, revId = Some(2L)),
+            img("File:Moved.jpg", 3L, revId = Some(3L))
+          ),
+          None
+        ),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val q = newImageQuery()
       q.imageIdsFromCategory(contest) returns Future.successful(Seq(rev(1L, 1L)))
@@ -563,7 +708,9 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       val data = stats(dir, q).gatherData(total = false).await
 
       data.currentYearImageDb.images.map(_.title).toSeq must_== Seq("File:Keep.jpg")
-      ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2016).toString).map(_.title) must_== Seq("File:Keep.jpg")
+      ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2016).toString).map(_.title) must_== Seq(
+        "File:Keep.jpg"
+      )
       val deleted = DeletedImagesCsv.read(deletedCsv(dir, 2016))
       deleted.map(d => (d.image.title, d.detected)) must_== Seq("File:Deleted.jpg" -> LocalDate.now)
       deleted.head.image.monumentIds must_== Seq("123")
@@ -572,11 +719,18 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
     "keep every gone file for the next run when Commons can't say which were deleted" in {
       val dir = cacheDir()
       ImageCsvExporter.export(
-        new ImageDB(contest, Seq(
-          img("File:Keep.jpg", 1L, revId = Some(1L)),
-          img("File:Gone.jpg", 2L, revId = Some(2L))
-        ), None),
-        campaign, isCurrent = false, dir.toString)
+        new ImageDB(
+          contest,
+          Seq(
+            img("File:Keep.jpg", 1L, revId = Some(1L)),
+            img("File:Gone.jpg", 2L, revId = Some(2L))
+          ),
+          None
+        ),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val q = newImageQuery()
       q.imageIdsFromCategory(contest) returns Future.successful(Seq(rev(1L, 1L)))
@@ -584,7 +738,10 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
 
       val data = stats(dir, q).gatherData(total = false).await
 
-      data.currentYearImageDb.images.map(_.title).toSet must_== Set("File:Keep.jpg", "File:Gone.jpg")
+      data.currentYearImageDb.images.map(_.title).toSet must_== Set(
+        "File:Keep.jpg",
+        "File:Gone.jpg"
+      )
       rowCount(yearCsv(dir, 2016)) must_== 2
       new java.io.File(deletedCsv(dir, 2016)).exists must beFalse
     }
@@ -593,11 +750,17 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       val dir = cacheDir()
       ImageCsvExporter.export(
         new ImageDB(contest, Seq(img("File:Keep.jpg", 1L, revId = Some(1L))), None),
-        campaign, isCurrent = false, dir.toString)
-      DeletedImagesCsv.write(deletedCsv(dir, 2016), Seq(
-        DeletedImage(img("File:Back.jpg", 2L, revId = Some(2L)), LocalDate.parse("2026-01-01")),
-        DeletedImage(img("File:Gone.jpg", 3L, revId = Some(3L)), LocalDate.parse("2026-01-02"))
-      ))
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
+      DeletedImagesCsv.write(
+        deletedCsv(dir, 2016),
+        Seq(
+          DeletedImage(img("File:Back.jpg", 2L, revId = Some(2L)), LocalDate.parse("2026-01-01")),
+          DeletedImage(img("File:Gone.jpg", 3L, revId = Some(3L)), LocalDate.parse("2026-01-02"))
+        )
+      )
 
       val q = newImageQuery()
       q.imageIdsFromCategory(contest) returns Future.successful(Seq(rev(1L, 1L), rev(2L, 2L)))
@@ -606,7 +769,10 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
 
       val data = stats(dir, q).gatherData(total = false).await
 
-      data.currentYearImageDb.images.map(_.title).toSet must_== Set("File:Keep.jpg", "File:Back.jpg")
+      data.currentYearImageDb.images.map(_.title).toSet must_== Set(
+        "File:Keep.jpg",
+        "File:Back.jpg"
+      )
       DeletedImagesCsv.read(deletedCsv(dir, 2016)).map(d => (d.image.title, d.detected)) must_==
         Seq("File:Gone.jpg" -> LocalDate.parse("2026-01-02"))
     }
@@ -630,11 +796,19 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
     "be read as the per-year images plus its other rows; an old CSV repeating per-year rows is rewritten without them" in {
       val dir = cacheDir()
       val perYear = img("File:A.jpg", 1L, revId = Some(10L))
-      ImageCsvExporter.export(new ImageDB(contest, Seq(perYear), None), campaign, isCurrent = false, dir.toString)
+      ImageCsvExporter.export(
+        new ImageDB(contest, Seq(perYear), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
       // old format: the all-images CSV also holds a (staler) copy of the per-year image
       val staleCopy = perYear.copy(monumentIds = Seq("999"), revId = Some(9L))
-      ImageCsvExporter.exportTotal(new ImageDB(contest, Seq(staleCopy, img("File:X.jpg", 5L, revId = Some(50L))), None),
-        campaign, dir.toString)
+      ImageCsvExporter.exportTotal(
+        new ImageDB(contest, Seq(staleCopy, img("File:X.jpg", 5L, revId = Some(50L))), None),
+        campaign,
+        dir.toString
+      )
 
       val q = newImageQuery()
       q.imageIdsFromCategory(contest) returns Future.successful(Seq(rev(1L, 10L)))
@@ -651,8 +825,12 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
 
     "on a full fetch, cache only the images not in the per-year CSVs" in {
       val dir = cacheDir()
-      ImageCsvExporter.export(new ImageDB(contest, Seq(img("File:A.jpg", 1L, revId = Some(10L))), None), campaign,
-        isCurrent = false, dir.toString)
+      ImageCsvExporter.export(
+        new ImageDB(contest, Seq(img("File:A.jpg", 1L, revId = Some(10L))), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val q = newImageQuery()
       q.imageIdsFromCategory(contest) returns Future.successful(Seq(rev(1L, 10L)))
@@ -669,11 +847,22 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
     "with --csv-cache-resync: diff only the rows not in the per-year CSVs" in {
       val dir = cacheDir()
       val perYear = img("File:A.jpg", 1L, revId = Some(10L))
-      ImageCsvExporter.export(new ImageDB(contest, Seq(perYear), None), campaign, isCurrent = false, dir.toString)
+      ImageCsvExporter.export(
+        new ImageDB(contest, Seq(perYear), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
       // old format, with a copy of file 1 at an older revision than the live one
       ImageCsvExporter.exportTotal(
-        new ImageDB(contest, Seq(perYear.copy(revId = Some(9L)), img("File:X.jpg", 5L, revId = Some(50L))), None),
-        campaign, dir.toString)
+        new ImageDB(
+          contest,
+          Seq(perYear.copy(revId = Some(9L)), img("File:X.jpg", 5L, revId = Some(50L))),
+          None
+        ),
+        campaign,
+        dir.toString
+      )
 
       val q = newImageQuery()
       q.imageIdsFromCategory(contest) returns Future.successful(Seq(rev(1L, 10L)))
@@ -689,11 +878,21 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
 
     "with --csv-cache-resync: keep its files Commons deleted in the all-time deleted-files CSV" in {
       val dir = cacheDir()
-      ImageCsvExporter.export(new ImageDB(contest, Seq(img("File:A.jpg", 1L, revId = Some(10L))), None),
-        campaign, isCurrent = false, dir.toString)
+      ImageCsvExporter.export(
+        new ImageDB(contest, Seq(img("File:A.jpg", 1L, revId = Some(10L))), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
       ImageCsvExporter.exportTotal(
-        new ImageDB(contest, Seq(img("File:X.jpg", 5L, revId = Some(50L)), img("File:Y.jpg", 6L, revId = Some(60L))), None),
-        campaign, dir.toString)
+        new ImageDB(
+          contest,
+          Seq(img("File:X.jpg", 5L, revId = Some(50L)), img("File:Y.jpg", 6L, revId = Some(60L))),
+          None
+        ),
+        campaign,
+        dir.toString
+      )
 
       val q = newImageQuery()
       q.imageIdsFromCategory(contest) returns Future.successful(Seq(rev(1L, 10L)))
@@ -703,7 +902,9 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       val data = stats(dir, q, csvCacheResync = true).gatherData(total = true).await
 
       data.totalImageDb.images.map(_.title).toSeq must_== Seq("File:A.jpg", "File:X.jpg")
-      DeletedImagesCsv.read(DeletedImagesCsv.totalFilename(campaign, dir.toString)).map(_.image.title) must_==
+      DeletedImagesCsv
+        .read(DeletedImagesCsv.totalFilename(campaign, dir.toString))
+        .map(_.image.title) must_==
         Seq("File:Y.jpg")
     }
 
@@ -716,11 +917,18 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       )
       ImageCsvExporter.exportTotal(new ImageDB(contest, total, None), campaign, dir.toString)
       // also a current-year CSV so the per-year sync doesn't fetch
-      ImageCsvExporter.export(new ImageDB(contest, Nil, None), campaign, isCurrent = false, dir.toString)
+      ImageCsvExporter.export(
+        new ImageDB(contest, Nil, None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val commons = newImageQuery()
       commons.imageIdsFromCategory(contest) returns Future.successful(Seq.empty[PageRevInfo])
-      commons.imageIdsWithTemplate(contest) returns Future.successful(Seq(rev(1L, 11L), rev(2L, 999L)))
+      commons.imageIdsWithTemplate(contest) returns Future.successful(
+        Seq(rev(1L, 11L), rev(2L, 999L))
+      )
       commons.imagesWithTemplateByIds(contest, Set(2L)) returns
         Future.successful(Seq(img("File:C-edit-v2.jpg", 2L, revId = Some(999L))))
 
@@ -730,7 +938,8 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       val monumentQuery = mock[MonumentQuery]
       monumentQuery.byMonumentTemplate(date = None) returns Future.successful(monuments)
       val cfg = StatConfig(campaign = campaign, csvCacheDir = dir.toString, csvCacheResync = true)
-      val st = new Statistics(contest, None, monumentQuery, Some(commons), Some(wiki), mock[MwBot], cfg)
+      val st =
+        new Statistics(contest, None, monumentQuery, Some(commons), Some(wiki), mock[MwBot], cfg)
 
       val data = st.gatherData(total = true).await
 
@@ -758,7 +967,8 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       val monumentQuery = mock[MonumentQuery]
       monumentQuery.byMonumentTemplate(date = None) returns Future.successful(monuments)
       val cfg = StatConfig(campaign = campaign, csvCacheDir = dir.toString, csvCacheResync = true)
-      val st = new Statistics(contest, None, monumentQuery, Some(commons), Some(wiki), mock[MwBot], cfg)
+      val st =
+        new Statistics(contest, None, monumentQuery, Some(commons), Some(wiki), mock[MwBot], cfg)
 
       val data = st.gatherData(total = true).await
 
@@ -770,8 +980,12 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
   "csvCache = false" should {
     "always fetch and never touch the CSV cache" in {
       val dir = cacheDir()
-      ImageCsvExporter.export(new ImageDB(contest, Seq(img("File:Cached.jpg", 1L)), None), campaign,
-        isCurrent = false, dir.toString)
+      ImageCsvExporter.export(
+        new ImageDB(contest, Seq(img("File:Cached.jpg", 1L)), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val q = newImageQuery()
       q.imagesFromCategory(contest) returns Future.successful(Seq(img("File:Fetched.jpg", 7L)))
@@ -781,22 +995,35 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       data.currentYearImageDb.images.map(_.title).toSeq must_== Seq("File:Fetched.jpg")
       there was no(q).imageIdsFromCategory(contest)
       // cache file left untouched
-      ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2016).toString).map(_.title) must_== Seq("File:Cached.jpg")
+      ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2016).toString).map(_.title) must_== Seq(
+        "File:Cached.jpg"
+      )
     }
   }
 
   "--images-from-csv with --csv-cache-refresh" should {
     "still read the strict CSVs (refresh applies only to the automatic cache)" in {
       val dir = cacheDir()
-      ImageCsvExporter.export(new ImageDB(prevContest, Seq(img("File:Strict.jpg", 1L)), None), campaign,
-        isCurrent = false, dir.toString)
+      ImageCsvExporter.export(
+        new ImageDB(prevContest, Seq(img("File:Strict.jpg", 1L)), None),
+        campaign,
+        isCurrent = false,
+        dir.toString
+      )
 
       val q = newImageQuery()
-      q.imagesFromCategory(prevContest) returns Future.failed(new RuntimeException("should not fetch"))
+      q.imagesFromCategory(prevContest) returns Future.failed(
+        new RuntimeException("should not fetch")
+      )
       q.imagesFromCategory(contest) returns Future.successful(Nil)
 
-      val data = stats(dir, q, startYear = Some(2015), csvCacheRefresh = true,
-        imagesFromCsv = Some(dir.toString)).gatherData(total = false).await
+      val data = stats(
+        dir,
+        q,
+        startYear = Some(2015),
+        csvCacheRefresh = true,
+        imagesFromCsv = Some(dir.toString)
+      ).gatherData(total = false).await
 
       data.imageDbByYear(2015).map(_.images.map(_.title).toSeq) must beSome(Seq("File:Strict.jpg"))
       there was no(q).imagesFromCategory(prevContest)

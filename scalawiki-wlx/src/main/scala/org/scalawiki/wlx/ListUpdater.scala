@@ -15,9 +15,9 @@ import scala.concurrent.Future
 
 object ListUpdater {
 
-  /** Update every list page for `monumentDb`. [[PageUpdater]] processes the pages
-    * serially; callers chain the returned future so one list pass finishes before
-    * the next starts. */
+  /** Update every list page for `monumentDb`. [[PageUpdater]] processes the pages serially; callers
+    * chain the returned future so one list pass finishes before the next starts.
+    */
   def updateLists(
       monumentDb: MonumentDB,
       monumentUpdater: MonumentUpdater
@@ -27,10 +27,9 @@ object ListUpdater {
     updater.update().map(_ => ())
   }
 
-  /** Run `monumentUpdater` over the separate wiki pages that hold special
-    * nomination (thematic) monument lists. [[updateLists]] never visits them
-    * because they are not part of the per-region `monumentDb`. Mirrors
-    * `ReporterRegistry.fillSpecialNominationLists`.
+  /** Run `monumentUpdater` over the separate wiki pages that hold special nomination (thematic)
+    * monument lists. [[updateLists]] never visits them because they are not part of the per-region
+    * `monumentDb`. Mirrors `ReporterRegistry.fillSpecialNominationLists`.
     */
   def updateSpecialNominationLists(
       stat: ContestStat,

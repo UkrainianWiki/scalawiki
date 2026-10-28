@@ -8,8 +8,8 @@ import org.specs2.mutable.Specification
 
 import java.time.{LocalDate, ZonedDateTime}
 
-/** WLM UA 2026 rule 7.3.4: +5 points if every already-known photo of the monument
-  * is dated before 2020-01-01.
+/** WLM UA 2026 rule 7.3.4: +5 points if every already-known photo of the monument is dated before
+  * 2020-01-01.
   */
 class OldPhotosBonusSpec extends Specification {
 

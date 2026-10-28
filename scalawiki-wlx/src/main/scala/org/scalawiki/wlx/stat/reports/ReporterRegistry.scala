@@ -18,7 +18,6 @@ import org.scalawiki.wlx.{
 import org.scalawiki.wlx.stat.progress.ProgressTask
 import org.slf4j.LoggerFactory
 
-
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
@@ -60,14 +59,16 @@ class ReporterRegistry(
 
   def withArticles: Option[String] = RR.withArticles(monumentDb)
 
-  /** Report steps that threw while building or dispatching their output.
-    * Populated by [[step]]; drained by the CLI to report a partial run. */
+  /** Report steps that threw while building or dispatching their output. Populated by [[step]];
+    * drained by the CLI to report a partial run.
+    */
   private val stepErrors = scala.collection.mutable.Buffer.empty[(String, Throwable)]
 
-  /** Run one report step in isolation: a failure in it is recorded and printed
-    * with its stack trace, but never aborts the remaining steps. Only catches
-    * exceptions thrown synchronously — asynchronous edit/upload failures are
-    * tracked separately by [[org.scalawiki.util.WriteWatcher]]. */
+  /** Run one report step in isolation: a failure in it is recorded and printed with its stack
+    * trace, but never aborts the remaining steps. Only catches exceptions thrown synchronously —
+    * asynchronous edit/upload failures are tracked separately by
+    * [[org.scalawiki.util.WriteWatcher]].
+    */
   private def step(name: String)(body: => Any): Unit = {
     try {
       logger.info(s"[report] $name")
@@ -148,11 +149,15 @@ class ReporterRegistry(
     }
 
     if ((cfg.wrongIds || cfg.missingIds) && monumentDb.isDefined) {
-      step("imageIdProblems")(ImageIdProblems.updateWiki(stat, cfg.wrongIds, cfg.missingIds, commons))
+      step("imageIdProblems")(
+        ImageIdProblems.updateWiki(stat, cfg.wrongIds, cfg.missingIds, commons)
+      )
     }
 
     if (cfg.deletedImages) {
-      step("deletedImages")(DeletedImages.updateWiki(contest, stat.yearSeq, cfg.effectiveCsvCacheDir, commons))
+      step("deletedImages")(
+        DeletedImages.updateWiki(contest, stat.yearSeq, cfg.effectiveCsvCacheDir, commons)
+      )
     }
 
     if (cfg.newMonuments) {
@@ -176,9 +181,9 @@ class ReporterRegistry(
 
   }
 
-  /** Runs every configured report step. Returns the steps that threw
-    * synchronously; asynchronous wiki-write failures are reported separately by
-    * [[org.scalawiki.util.WriteWatcher]]. */
+  /** Runs every configured report step. Returns the steps that threw synchronously; asynchronous
+    * wiki-write failures are reported separately by [[org.scalawiki.util.WriteWatcher]].
+    */
   def output(): Seq[(String, Throwable)] = {
     stepErrors.clear()
     currentYear()
@@ -195,16 +200,21 @@ class ReporterRegistry(
             outputDir = dir
           )
         }
-        ImageCsvExporter.exportTotal(totalImageDb, stat.contest.campaign, outputDir = dir, perYear = stat.dbsByYear)
+        ImageCsvExporter.exportTotal(
+          totalImageDb,
+          stat.contest.campaign,
+          outputDir = dir,
+          perYear = stat.dbsByYear
+        )
       }
     }
     stepErrors.toSeq
   }
 
-  /** Special nomination monument lists (e.g. thematic lists like "Музичні пам'ятки в
-    * Україні") often live on separate wiki pages from the regular per-region monument
-    * lists that `monumentDb` is built from, so `ImageFiller.fillLists` never visits
-    * them. Fill each nomination's own list pages too, reusing the same image data.
+  /** Special nomination monument lists (e.g. thematic lists like "Музичні пам'ятки в Україні")
+    * often live on separate wiki pages from the regular per-region monument lists that `monumentDb`
+    * is built from, so `ImageFiller.fillLists` never visits them. Fill each nomination's own list
+    * pages too, reusing the same image data.
     */
   private def fillSpecialNominationLists(imageDb: ImageDB): Future[Unit] =
     ListUpdater.updateSpecialNominationLists(

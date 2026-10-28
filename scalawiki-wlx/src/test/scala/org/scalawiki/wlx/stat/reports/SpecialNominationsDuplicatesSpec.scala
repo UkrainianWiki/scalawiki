@@ -23,8 +23,14 @@ class SpecialNominationsDuplicatesSpec extends Specification {
 
     "find an id repeated on the same page" in {
       val monuments = Seq(
-        monument("26-212-0355", "Пам'ятки дерев'яної архітектури України/Івано-Франківська область/1"),
-        monument("26-212-0355", "Пам'ятки дерев'яної архітектури України/Івано-Франківська область/1")
+        monument(
+          "26-212-0355",
+          "Пам'ятки дерев'яної архітектури України/Івано-Франківська область/1"
+        ),
+        monument(
+          "26-212-0355",
+          "Пам'ятки дерев'яної архітектури України/Івано-Франківська область/1"
+        )
       )
       SpecialNominations.duplicatedIds(monuments).map(_._1) === Seq("26-212-0355")
     }
@@ -47,7 +53,11 @@ class SpecialNominationsDuplicatesSpec extends Specification {
   "SpecialNominations.duplicatedIdsText" should {
     val duplicates = SpecialNominations.duplicatedIds(
       Seq(
-        monument("99-245-0001", "Єврейська спадщина/Львівська область", "[[Меморіал (Львів)|Меморіал]]"),
+        monument(
+          "99-245-0001",
+          "Єврейська спадщина/Львівська область",
+          "[[Меморіал (Львів)|Меморіал]]"
+        ),
         monument("99-245-0001", "Єврейська спадщина/Чернівецька область", "Кладовище\n<br/> старе")
       )
     )
@@ -63,7 +73,9 @@ class SpecialNominationsDuplicatesSpec extends Specification {
 
     "link names and list pages to uk.wikipedia" in {
       text must contain("[[:uk:Меморіал (Львів)|Меморіал]]")
-      text must contain(s"[[:uk:${lists}Єврейська спадщина/Чернівецька область|Єврейська спадщина/Чернівецька область]]")
+      text must contain(
+        s"[[:uk:${lists}Єврейська спадщина/Чернівецька область|Єврейська спадщина/Чернівецька область]]"
+      )
     }
 
     "keep each name on one line, so it stays in its table cell" in {
@@ -78,7 +90,10 @@ class SpecialNominationsDuplicatesSpec extends Specification {
     "link a list once for an id repeated in it, with its count, and show a repeated name once" in {
       val page = "Пам'ятки дерев'яної архітектури України/Івано-Франківська область/1"
       val sameList = SpecialNominations.duplicatedIds(
-        Seq(monument("26-212-0355", page, "Гуцульська ґражда"), monument("26-212-0355", page, "Гуцульська ґражда"))
+        Seq(
+          monument("26-212-0355", page, "Гуцульська ґражда"),
+          monument("26-212-0355", page, "Гуцульська ґражда")
+        )
       )
       val t = SpecialNominations.duplicatedIdsText(Seq("Дерев'яна архітектура" -> sameList), "WLM")
       t must contain("=== Repeated within one list (1) ===")
@@ -89,7 +104,9 @@ class SpecialNominationsDuplicatesSpec extends Specification {
     }
 
     "say so when no nomination has duplicates" in {
-      SpecialNominations.duplicatedIdsText(Seq("Бібліотеки" -> Nil), "WLM") must contain("No duplicated ids.")
+      SpecialNominations.duplicatedIdsText(Seq("Бібліотеки" -> Nil), "WLM") must contain(
+        "No duplicated ids."
+      )
     }
   }
 }

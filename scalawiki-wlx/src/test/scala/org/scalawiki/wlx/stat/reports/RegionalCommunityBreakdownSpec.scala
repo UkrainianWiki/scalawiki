@@ -92,7 +92,8 @@ class RegionalCommunityBreakdownSpec extends Specification {
       val totalSection = text.substring(text.indexOf("==== Total ===="))
       val raionRowPos = totalSection.indexOf(s"| ${raion.fullName} || 4 || 1 || 25")
       val unresolvedRowPos = totalSection.indexOf("| Unresolved || 1 || 0 || 0")
-      val grandTotalRowPos = totalSection.indexOf(s"| ${RegionalCommunityBreakdown.totalName} || 5 || 1 || 20")
+      val grandTotalRowPos =
+        totalSection.indexOf(s"| ${RegionalCommunityBreakdown.totalName} || 5 || 1 || 20")
 
       raionRowPos must be_>=(0)
       unresolvedRowPos must be_>(raionRowPos)
@@ -101,7 +102,9 @@ class RegionalCommunityBreakdownSpec extends Specification {
 
     "list the raion-only-resolved and fully-unresolved monuments in the Data issues list, with an explanation" in {
       text must contain("==== Data issues ====")
-      text must contain("01-xxx-0004 (M4): Unresolved — resolved to a raion but not to any specific hromada")
+      text must contain(
+        "01-xxx-0004 (M4): Unresolved — resolved to a raion but not to any specific hromada"
+      )
       text must contain(
         "01-xxx-0005 (M5): Unresolved — no current raion, hromada, or district could be determined"
       )
@@ -141,7 +144,9 @@ class RegionalCommunityBreakdownSpec extends Specification {
         monumentDb,
         totalImageDb
       )
-      rendered must contain("places it in Сумська область / Сумський район / Миколаївська сільська громада")
+      rendered must contain(
+        "places it in Сумська область / Сумський район / Миколаївська сільська громада"
+      )
     }
   }
 
@@ -160,7 +165,9 @@ class RegionalCommunityBreakdownSpec extends Specification {
 
       text must contain("==== Data issues ====")
       text must contain("01-xxx-0006")
-      text must contain("Bad id — this monument's id does not start with this oblast's own numeric code")
+      text must contain(
+        "Bad id — this monument's id does not start with this oblast's own numeric code"
+      )
       text must contain("01-xxx-0007")
       text must contain(
         "Wrong region — this monument's id looks like it belongs to this oblast, but its own list page actually places it in"
@@ -307,7 +314,11 @@ class RegionalCommunityBreakdownSpec extends Specification {
     val page2 = "Page/B"
 
     "link to the monument's page when exactly one page is present" in {
-      RegionalCommunityBreakdown.linkedName("Name", Set("01-xxx-0010"), Map("01-xxx-0010" -> page1)) ===
+      RegionalCommunityBreakdown.linkedName(
+        "Name",
+        Set("01-xxx-0010"),
+        Map("01-xxx-0010" -> page1)
+      ) ===
         s"[[:uk:$page1|Name]]"
     }
 

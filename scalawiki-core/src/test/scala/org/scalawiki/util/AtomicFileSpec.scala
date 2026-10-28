@@ -16,7 +16,8 @@ class AtomicFileSpec extends Specification {
       } must throwA[RuntimeException]("disk full")
       new String(Files.readAllBytes(cache), UTF_8) must_== "previous complete cache"
       val files = Files.list(dir)
-      try files.count() must_== 1L finally files.close()
+      try files.count() must_== 1L
+      finally files.close()
     }
 
     "replace the complete file on success" in {

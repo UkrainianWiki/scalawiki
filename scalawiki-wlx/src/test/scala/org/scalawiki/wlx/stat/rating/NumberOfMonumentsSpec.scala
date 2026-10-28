@@ -5,9 +5,8 @@ import org.scalawiki.wlx.stat.ContestStat
 import org.scalawiki.wlx.{ImageDB, MonumentDB}
 import org.specs2.mutable.Specification
 
-/** WLM UA 2026 rule 9.4: base rate is 10 for monuments in the mostly-occupied
-  * regions (AR Crimea and Sevastopol, Donetsk, Zaporizhzhia, Luhansk and Kherson
-  * oblasts), 1 elsewhere.
+/** WLM UA 2026 rule 9.4: base rate is 10 for monuments in the mostly-occupied regions (AR Crimea
+  * and Sevastopol, Donetsk, Zaporizhzhia, Luhansk and Kherson oblasts), 1 elsewhere.
   */
 class NumberOfMonumentsSpec extends Specification {
 

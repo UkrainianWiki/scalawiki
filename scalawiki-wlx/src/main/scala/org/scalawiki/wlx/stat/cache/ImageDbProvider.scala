@@ -22,51 +22,47 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Try
 
-/** Builds the per-year and all-time [[ImageDB]]s for a contest, going through the
-  * image CSV cache when it is enabled.
+/** Builds the per-year and all-time [[ImageDB]]s for a contest, going through the image CSV cache
+  * when it is enabled.
   *
-  * A second-tier cache above the `http-cache/` request cache: once an
-  * `ImageDB` has been built it is serialized to `<csvDir>/<campaign>-<year>-images.csv`
-  * (and `<campaign>-all-images.csv` with the all-time DB's images that are in
-  * no per-year CSV - the all-time DB is those plus the per-year images). Later runs read those
-  * CSVs directly and skip the sequential JSON parse of the raw API responses.
+  * A second-tier cache above the `http-cache/` request cache: once an `ImageDB` has been built it
+  * is serialized to `<csvDir>/<campaign>-<year>-images.csv` (and `<campaign>-all-images.csv` with
+  * the all-time DB's images that are in no per-year CSV - the all-time DB is those plus the
+  * per-year images). Later runs read those CSVs directly and skip the sequential JSON parse of the
+  * raw API responses.
   *
-  * - `--images-from-csv <dir>` keeps its strict semantics (files must exist);
-  *   `--csv-cache-refresh` does not apply there (those files are user-managed
-  *   via `--export-images-csv`).
-  * - otherwise the cache lives under `csv-cache/` and is filled on demand.
-  * - the current contest year is always incrementally synced against the wiki:
-  *   a cheap id + latest-revision sweep of the category tells us which files are
-  *   new (fetch metadata), which changed since caching (revid differs -> refetch)
-  *   and which are gone (dropped). Its CSV is written to the same
-  *   `<campaign>-<year>-images.csv` path that next year's run reads as the frozen
-  *   past-year copy -- so the last mid-contest sync of year N becomes the
-  *   permanent record of year N.
-  * - past contest years and the all-images CSV are frozen (read verbatim) unless
-  *   `--csv-cache-resync` is given, which runs the same new/changed/deleted sweep
-  *   against them (with `--csv-cache-resync-interval N`, at most every N
-  *   days). For rows written before the `last_revid` column existed we
-  *   have no revid to compare, so a change is assumed only when the live
-  *   revision post-dates the moment the CSV was last written (its file mtime).
-  *   A resynced past year stays slim: a year the sweep finds unchanged is not
-  *   rewritten, and only a changed one is re-read in full to rewrite its CSV, so
-  *   a daily resync costs about the memory of a run without it.
-  * - deletions are only trusted when the sweep looks complete: the number of
-  *   ids it returned is checked against `categoryinfo.files` (and, failing that,
-  *   against the cached row count). A short sweep (truncated pagination, a
-  *   transient API hiccup) keeps every cached row rather than wiping the CSV.
-  * - of the rows a complete sweep no longer lists, those Commons no longer has
-  *   (asked by page id) were deleted: they move to `<campaign>-<year>-deleted-images.csv`
-  *   (`<campaign>-all-deleted-images.csv` for the all-images CSV, see
-  *   [[DeletedImagesCsv]]), which `--deleted-images` reports. The others only left the
-  *   category and are dropped. When Commons can't be asked, every gone row is kept
-  *   for the next run.
-  * - delete a CSV to force a full refetch (clearing only `http-cache/` does
-  *   nothing, the CSV short-circuits before the request cache is consulted).
-  * - a CSV missing a column the exporter now writes (e.g. `media_type`) was
-  *   written by an older version: it is refetched and rewritten as if absent,
-  *   past years included.
-  * - `--csv-cache-refresh` ignores existing CSVs and overwrites them.
+  *   - `--images-from-csv <dir>` keeps its strict semantics (files must exist);
+  *     `--csv-cache-refresh` does not apply there (those files are user-managed via
+  *     `--export-images-csv`).
+  *   - otherwise the cache lives under `csv-cache/` and is filled on demand.
+  *   - the current contest year is always incrementally synced against the wiki: a cheap id +
+  *     latest-revision sweep of the category tells us which files are new (fetch metadata), which
+  *     changed since caching (revid differs -> refetch) and which are gone (dropped). Its CSV is
+  *     written to the same `<campaign>-<year>-images.csv` path that next year's run reads as the
+  *     frozen past-year copy -- so the last mid-contest sync of year N becomes the permanent record
+  *     of year N.
+  *   - past contest years and the all-images CSV are frozen (read verbatim) unless
+  *     `--csv-cache-resync` is given, which runs the same new/changed/deleted sweep against them
+  *     (with `--csv-cache-resync-interval N`, at most every N days). For rows written before the
+  *     `last_revid` column existed we have no revid to compare, so a change is assumed only when
+  *     the live revision post-dates the moment the CSV was last written (its file mtime). A
+  *     resynced past year stays slim: a year the sweep finds unchanged is not rewritten, and only a
+  *     changed one is re-read in full to rewrite its CSV, so a daily resync costs about the memory
+  *     of a run without it.
+  *   - deletions are only trusted when the sweep looks complete: the number of ids it returned is
+  *     checked against `categoryinfo.files` (and, failing that, against the cached row count). A
+  *     short sweep (truncated pagination, a transient API hiccup) keeps every cached row rather
+  *     than wiping the CSV.
+  *   - of the rows a complete sweep no longer lists, those Commons no longer has (asked by page id)
+  *     were deleted: they move to `<campaign>-<year>-deleted-images.csv`
+  *     (`<campaign>-all-deleted-images.csv` for the all-images CSV, see [[DeletedImagesCsv]]),
+  *     which `--deleted-images` reports. The others only left the category and are dropped. When
+  *     Commons can't be asked, every gone row is kept for the next run.
+  *   - delete a CSV to force a full refetch (clearing only `http-cache/` does nothing, the CSV
+  *     short-circuits before the request cache is consulted).
+  *   - a CSV missing a column the exporter now writes (e.g. `media_type`) was written by an older
+  *     version: it is refetched and rewritten as if absent, past years included.
+  *   - `--csv-cache-refresh` ignores existing CSVs and overwrites them.
   */
 class ImageDbProvider(
     contest: Contest,
@@ -94,17 +90,20 @@ class ImageDbProvider(
   private val csvRefresh: Boolean = config.csvCacheRefresh && csvAutoCache
 
   /** Where the date of the last completed `--csv-cache-resync` is kept, for
-    * `--csv-cache-resync-interval`. */
+    * `--csv-cache-resync-interval`.
+    */
   private val resyncDateFile = Paths.get(csvDir, s"${contest.campaign}-resync.date")
 
   private val today = LocalDate.now
 
   private def lastResync: Option[LocalDate] =
-    Try(LocalDate.parse(new String(Files.readAllBytes(resyncDateFile), StandardCharsets.UTF_8).trim)).toOption
+    Try(
+      LocalDate.parse(new String(Files.readAllBytes(resyncDateFile), StandardCharsets.UTF_8).trim)
+    ).toOption
 
-  /** With `--csv-cache-resync-interval N`, a resync is due when none has
-    * completed in the last N days (by calendar date, so a daily run at a fixed
-    * hour resyncs every Nth day). */
+  /** With `--csv-cache-resync-interval N`, a resync is due when none has completed in the last N
+    * days (by calendar date, so a daily run at a fixed hour resyncs every Nth day).
+    */
   private def resyncDue: Boolean =
     config.csvCacheResyncIntervalDays.forall { days =>
       val last = lastResync
@@ -122,12 +121,15 @@ class ImageDbProvider(
   private val incompleteSync = new AtomicBoolean(false)
   def resyncSuccessful: Boolean = !incompleteSync.get()
 
-  /** Record that this run's resync completed, so `--csv-cache-resync-interval`
-    * counts from today. Call once every image DB has been built. */
+  /** Record that this run's resync completed, so `--csv-cache-resync-interval` counts from today.
+    * Call once every image DB has been built.
+    */
   def resyncCompleted(): Unit =
     if (csvResync) {
       if (!resyncSuccessful)
-        logger.warn("[csv-cache] resync incomplete; preserving the previous completion date for a retry")
+        logger.warn(
+          "[csv-cache] resync incomplete; preserving the previous completion date for a retry"
+        )
       else
         Try {
           AtomicFile.write(resyncDateFile) { temporary =>
@@ -139,37 +141,46 @@ class ImageDbProvider(
         }
     }
 
-  /** Shared by every CSV read this run, so a value repeated across files (an
-    * author, a category) is held once. */
+  /** Shared by every CSV read this run, so a value repeated across files (an author, a category) is
+    * held once.
+    */
   private val valuePool = new ImageCsvImporter.ValuePool
 
-  /** Past years' images are loaded slim (see `ImageCsvImporter.slim`) unless
-    * `--export-images-csv` exports them. A `--csv-cache-resync` that changes a
-    * year re-reads that year's CSV in full to rewrite it (see [[SlimRows]]). */
+  /** Past years' images are loaded slim (see `ImageCsvImporter.slim`) unless `--export-images-csv`
+    * exports them. A `--csv-cache-resync` that changes a year re-reads that year's CSV in full to
+    * rewrite it (see [[SlimRows]]).
+    */
   private val slimPastYears: Boolean = config.exportImagesCsv.isEmpty
 
-  /** Slim cached rows being synced: their revisions (which slim images drop),
-    * and how to re-read them in full when the CSV has to be rewritten. */
+  /** Slim cached rows being synced: their revisions (which slim images drop), and how to re-read
+    * them in full when the CSV has to be rewritten.
+    */
   private case class SlimRows(revisions: Map[Long, CachedRevision], readFull: () => Seq[Image])
 
-  /** Where a sync keeps the cached files it finds deleted ([[DeletedImagesCsv]]), and how
-    * it asks Commons which of the files gone from its sweep were deleted. */
+  /** Where a sync keeps the cached files it finds deleted ([[DeletedImagesCsv]]), and how it asks
+    * Commons which of the files gone from its sweep were deleted.
+    */
   private case class DeletedFiles(csvPath: String, missing: Set[Long] => Future[Set[Long]])
 
-  /** When the CSV at `path` was last written — the instant the cache was known
-    * accurate. Used as the "changed since" cut-off for rows that predate the
-    * `last_revid` column (no revid to diff). Falls back to "now" (nothing looks
-    * changed) if the mtime can't be read, keeping the first resync cheap. */
+  /** When the CSV at `path` was last written — the instant the cache was known accurate. Used as
+    * the "changed since" cut-off for rows that predate the `last_revid` column (no revid to diff).
+    * Falls back to "now" (nothing looks changed) if the mtime can't be read, keeping the first
+    * resync cheap.
+    */
   private def cacheWrittenAt(path: String): ZonedDateTime =
     Try(Files.getLastModifiedTime(Paths.get(path)).toInstant.atZone(ZoneOffset.UTC))
       .getOrElse(ZonedDateTime.now(ZoneOffset.UTC))
 
-  /** Whether an id sweep of `swept` entries can be trusted to be exhaustive
-    * enough to act on deletions. `categoryinfo.files` is the reference when
-    * available (it lags reality by a job-queue cycle, hence the 10% slack);
-    * without it, only a sweep that still covers most of the cached rows is
-    * trusted. An empty sweep against a non-empty cache never is. */
-  private def sweepLooksComplete(swept: Int, cachedCount: Int, expectedFiles: Option[Long]): Boolean =
+  /** Whether an id sweep of `swept` entries can be trusted to be exhaustive enough to act on
+    * deletions. `categoryinfo.files` is the reference when available (it lags reality by a
+    * job-queue cycle, hence the 10% slack); without it, only a sweep that still covers most of the
+    * cached rows is trusted. An empty sweep against a non-empty cache never is.
+    */
+  private def sweepLooksComplete(
+      swept: Int,
+      cachedCount: Int,
+      expectedFiles: Option[Long]
+  ): Boolean =
     if (swept == 0 && cachedCount > 0) false
     else
       expectedFiles match {
@@ -180,8 +191,9 @@ class ImageDbProvider(
   private def yearCsvPath(year: Int): String =
     ImageCsvExporter.filename(contest.campaign, year, isCurrent = false, csvDir)
 
-  /** Whether the auto-cache CSV at `path` can be read: it exists and has every
-    * current column (see the class doc). */
+  /** Whether the auto-cache CSV at `path` can be read: it exists and has every current column (see
+    * the class doc).
+    */
   private def usableCacheCsv(path: String): Boolean =
     new File(path).exists() && {
       val current = ImageCsvImporter.hasCurrentColumns(path)
@@ -193,10 +205,13 @@ class ImageDbProvider(
   private def totalCsvReadPath: Option[String] =
     csvStrictDir
       .map(dir => ImageCsvExporter.totalFilename(contest.campaign, dir))
-      .orElse(if (csvAutoCache) Some(ImageCsvExporter.totalFilename(contest.campaign, csvDir)) else None)
+      .orElse(
+        if (csvAutoCache) Some(ImageCsvExporter.totalFilename(contest.campaign, csvDir)) else None
+      )
 
   /** The all-images CSV to read this run, or `None` when it should be (re)fetched
-    * (`--csv-cache-refresh`, no usable file, or the cache is off). */
+    * (`--csv-cache-refresh`, no usable file, or the cache is off).
+    */
   private lazy val existingTotalCsvPath: Option[String] =
     if (csvRefresh) None
     else if (csvStrictDir.isDefined) totalCsvReadPath.filter(new File(_).exists())
@@ -210,22 +225,25 @@ class ImageDbProvider(
     if (csvAutoCache)
       ImageCsvExporter.exportTotal(imageDb, contest.campaign, csvDir)
 
-  /** Per-year image DB: current-year incremental sync, past-year read/resync, or
-    * a full fetch when there is no cache. */
+  /** Per-year image DB: current-year incremental sync, past-year read/resync, or a full fetch when
+    * there is no cache.
+    */
   def perYear(monumentDb: Some[MonumentDB])(yearContest: Contest): Future[ImageDB] =
     if (yearContest.year != currentYear) pastYearImages(monumentDb)(yearContest)
     else currentYearImages(monumentDb)(yearContest)
 
-  /** Cheap page-id + revision sweep for the all-time template, started before the
-    * per-year fetches so the two overlap. `Nil` when the all-time DB is not
-    * wanted or an existing all-images CSV will be used instead. */
+  /** Cheap page-id + revision sweep for the all-time template, started before the per-year fetches
+    * so the two overlap. `Nil` when the all-time DB is not wanted or an existing all-images CSV
+    * will be used instead.
+    */
   def prefetchTotalPageRevs(wantTotal: Boolean): Future[Seq[PageRevInfo]] =
     if (wantTotal && existingTotalCsvPath.isEmpty) imageRevsByTemplate()
     else Future.successful(Nil)
 
-  /** The all-time image DB: resync an existing all-images CSV, read it verbatim,
-    * or fetch by template and cache it. When `wantTotal` is false this is just
-    * the current year's DB (`dbsByYear.last`). */
+  /** The all-time image DB: resync an existing all-images CSV, read it verbatim, or fetch by
+    * template and cache it. When `wantTotal` is false this is just the current year's DB
+    * (`dbsByYear.last`).
+    */
   def total(
       monumentDb: Some[MonumentDB],
       dbsByYear: Seq[ImageDB],
@@ -242,12 +260,16 @@ class ImageDbProvider(
       }
   }
 
-  /** The all-time DB from the all-images CSV: the per-year images (the same
-    * objects, not copies) plus the CSV's other rows. A CSV written before it
-    * stopped repeating per-year images still reads correctly - those rows are
-    * skipped, the per-year copy being the more recently synced one - and is
-    * rewritten without them so later runs don't parse them again. */
-  private def totalFromCsv(monumentDb: Some[MonumentDB], dbsByYear: Seq[ImageDB], path: String): ImageDB = {
+  /** The all-time DB from the all-images CSV: the per-year images (the same objects, not copies)
+    * plus the CSV's other rows. A CSV written before it stopped repeating per-year images still
+    * reads correctly - those rows are skipped, the per-year copy being the more recently synced one -
+    * and is rewritten without them so later runs don't parse them again.
+    */
+  private def totalFromCsv(
+      monumentDb: Some[MonumentDB],
+      dbsByYear: Seq[ImageDB],
+      path: String
+  ): ImageDB = {
     val perYearIds = ImageCsvExporter.perYearPageIds(dbsByYear)
     var skipped = 0
     val extras = ImageCsvImporter.imagesFromCsv(
@@ -269,7 +291,9 @@ class ImageDbProvider(
     new ImageDB(contest, dbsByYear.flatMap(_.images) ++ extras, monumentDb, config.minMpx)
   }
 
-  private def pastYearImages(monumentDb: Some[MonumentDB])(yearContest: Contest): Future[ImageDB] = {
+  private def pastYearImages(
+      monumentDb: Some[MonumentDB]
+  )(yearContest: Contest): Future[ImageDB] = {
     val year = yearContest.year
     val path = yearCsvPath(year)
     csvStrictDir match {
@@ -286,8 +310,15 @@ class ImageDbProvider(
           val (cached, revisions) =
             ImageCsvImporter.imagesWithRevisionsFromCsv(path, valuePool, slim = true)
           // a fresh pool: the shared one would keep every full category set alive
-          val readFull = () => ImageCsvImporter.imagesFromCsv(path, pool = new ImageCsvImporter.ValuePool)
-          syncYearFromCategory(yearContest, monumentDb, cached, path, Some(SlimRows(revisions, readFull)))
+          val readFull = () =>
+            ImageCsvImporter.imagesFromCsv(path, pool = new ImageCsvImporter.ValuePool)
+          syncYearFromCategory(
+            yearContest,
+            monumentDb,
+            cached,
+            path,
+            Some(SlimRows(revisions, readFull))
+          )
         } else
           syncYearFromCategory(
             yearContest,
@@ -299,33 +330,42 @@ class ImageDbProvider(
         oneYearFetchAtATime {
           fetchImageDb(yearContest, monumentDb).map { db =>
             writeCsvCache(db)
-            if (slimPastYears) db.copy(images = db.images.map(ImageCsvImporter.slim(_, valuePool)).toVector)
+            if (slimPastYears)
+              db.copy(images = db.images.map(ImageCsvImporter.slim(_, valuePool)).toVector)
             else db
           }
         }
     }
   }
 
-  private def currentYearImages(monumentDb: Some[MonumentDB])(yearContest: Contest): Future[ImageDB] = {
+  private def currentYearImages(
+      monumentDb: Some[MonumentDB]
+  )(yearContest: Contest): Future[ImageDB] = {
     val path = yearCsvPath(yearContest.year)
     if (csvAutoCache && !csvRefresh && usableCacheCsv(path))
-      syncYearFromCategory(yearContest, monumentDb, ImageCsvImporter.imagesFromCsv(path, pool = valuePool), path)
+      syncYearFromCategory(
+        yearContest,
+        monumentDb,
+        ImageCsvImporter.imagesFromCsv(path, pool = valuePool),
+        path
+      )
     else
       // Live, not through the `http-cache/` request cache: the current year's
       // category is still growing, and a cached response (e.g. the empty listing
       // from before the first upload) would be replayed forever - an empty DB
       // writes no CSV, so the next run would come straight back here.
       oneYearFetchAtATime {
-        fetchImageDb(yearContest, monumentDb, Some(imageQuery.getOrElse(liveImageQuery))).map { db =>
-          writeCsvCache(db)
-          db
+        fetchImageDb(yearContest, monumentDb, Some(imageQuery.getOrElse(liveImageQuery))).map {
+          db =>
+            writeCsvCache(db)
+            db
         }
       }
   }
 
-  /** Reconcile a per-year CSV cache against a fresh category id + revision sweep.
-    * Shared by the always-on current-year sync and the `--csv-cache-resync`
-    * past-year sync. */
+  /** Reconcile a per-year CSV cache against a fresh category id + revision sweep. Shared by the
+    * always-on current-year sync and the `--csv-cache-resync` past-year sync.
+    */
   private def syncYearFromCategory(
       yearContest: Contest,
       monumentDb: Some[MonumentDB],
@@ -358,34 +398,37 @@ class ImageDbProvider(
         sweepComplete =
           sweepLooksComplete(liveRevs.size, cached.count(_.pageId.isDefined), expectedFiles),
         slimRows = slimRows,
-        deleted = Some(DeletedFiles(DeletedImagesCsv.filename(contest.campaign, yearContest.year, csvDir), query.missingPageIds))
+        deleted = Some(
+          DeletedFiles(
+            DeletedImagesCsv.filename(contest.campaign, yearContest.year, csvDir),
+            query.missingPageIds
+          )
+        )
       )
     } yield db
   }
 
-  /** Incrementally reconcile a cached image set against a fresh id + latest-revision
-    * sweep of the wiki:
-    *   - ids in the sweep but not the cache  -> fetched (new uploads)
-    *   - ids in both whose revision changed  -> refetched (page edited / reuploaded)
-    *   - ids in the cache but not the sweep  -> dropped, *only* when `sweepComplete`;
-    *     with `deleted`, those Commons no longer has are kept in its CSV, and when
-    *     Commons can't be asked none is dropped this run
+  /** Incrementally reconcile a cached image set against a fresh id + latest-revision sweep of the
+    * wiki:
+    *   - ids in the sweep but not the cache -> fetched (new uploads)
+    *   - ids in both whose revision changed -> refetched (page edited / reuploaded)
+    *   - ids in the cache but not the sweep -> dropped, *only* when `sweepComplete`; with
+    *     `deleted`, those Commons no longer has are kept in its CSV, and when Commons can't be
+    *     asked none is dropped this run
     *   - everything else kept as-is (revid/timestamp backfilled from the sweep)
     *
-    * "changed" is a `revId` mismatch when both the cached row and the sweep entry
-    * expose one; for rows written before the column existed (no cached revid) it
-    * is the live revision timestamp being after the row's own timestamp, or
-    * `fallbackTs` when it has none. A sweep entry with no revid
-    * (revision-deleted current revision) is treated as unchanged.
+    * "changed" is a `revId` mismatch when both the cached row and the sweep entry expose one; for
+    * rows written before the column existed (no cached revid) it is the live revision timestamp
+    * being after the row's own timestamp, or `fallbackTs` when it has none. A sweep entry with no
+    * revid (revision-deleted current revision) is treated as unchanged.
     *
-    * `extraImages` are appended unconditionally (e.g. uk.wikipedia-hosted images
-    * for the all-images CSV, which live in a different page-id space).
+    * `extraImages` are appended unconditionally (e.g. uk.wikipedia-hosted images for the all-images
+    * CSV, which live in a different page-id space).
     *
-    * With `slimRows`, `cached` are slim images: the diff runs on
-    * `slimRows.revisions`, and when it finds nothing to change (no new, changed or
-    * gone row, no revid to backfill) the slim rows are returned and the CSV is not
-    * rewritten. Otherwise the rows are re-read in full, synced and written as
-    * usual, and the result is slimmed.
+    * With `slimRows`, `cached` are slim images: the diff runs on `slimRows.revisions`, and when it
+    * finds nothing to change (no new, changed or gone row, no revid to backfill) the slim rows are
+    * returned and the CSV is not rewritten. Otherwise the rows are re-read in full, synced and
+    * written as usual, and the result is slimmed.
     */
   private def syncImageDb(
       yearContest: Contest,
@@ -404,7 +447,9 @@ class ImageDbProvider(
     val liveById = liveRevs.iterator.map(r => r.pageId -> r).toMap
     val cachedRevs: Map[Long, CachedRevision] = slimRows
       .map(_.revisions)
-      .getOrElse(cached.iterator.flatMap(i => i.pageId.map(_ -> CachedRevision(i.revId, i.revTs))).toMap)
+      .getOrElse(
+        cached.iterator.flatMap(i => i.pageId.map(_ -> CachedRevision(i.revId, i.revTs))).toMap
+      )
 
     val newIds = liveById.keySet -- cachedRevs.keySet
     val changedIds = (liveById.keySet intersect cachedRevs.keySet).filter { id =>
@@ -484,7 +529,8 @@ class ImageDbProvider(
         // A partial refetch (transient error resolving some ids) must not silently
         // drop a row we still know about: fall back to the stale cached copy.
         val missedRefetch = refetch -- fetchedIds
-        val staleKept = rows.filter(_.pageId.exists(id => missedRefetch.contains(id) && !newIds.contains(id)))
+        val staleKept =
+          rows.filter(_.pageId.exists(id => missedRefetch.contains(id) && !newIds.contains(id)))
         if (missedRefetch.nonEmpty) {
           incompleteSync.set(true)
           logger.warn(
@@ -506,16 +552,23 @@ class ImageDbProvider(
               s"[csv-cache] ${yearContest.year}: of ${goneIds.size} file(s) gone from the sweep, ${ids.size} " +
                 s"deleted on Commons (kept in ${d.csvPath}), ${goneIds.size - ids.size} left it"
             )
-          DeletedImagesCsv.update(d.csvPath, rows.filter(_.pageId.exists(ids.contains)), liveById.contains, today)
+          DeletedImagesCsv.update(
+            d.csvPath,
+            rows.filter(_.pageId.exists(ids.contains)),
+            liveById.contains,
+            today
+          )
         }
-        if (slimRows.isDefined) db.copy(images = db.images.map(ImageCsvImporter.slim(_, valuePool)).toVector)
+        if (slimRows.isDefined)
+          db.copy(images = db.images.map(ImageCsvImporter.slim(_, valuePool)).toVector)
         else db
       }
     }
   }
 
-  /** Keep the first image seen for each page id (rows with no page id pass
-    * through). Order of preference is the caller's list order. */
+  /** Keep the first image seen for each page id (rows with no page id pass through). Order of
+    * preference is the caller's list order.
+    */
   private def dedupByPageId(images: Iterable[Image]): Seq[Image] = {
     val seen = scala.collection.mutable.Set.empty[Long]
     images.iterator.filter { i =>
@@ -526,14 +579,14 @@ class ImageDbProvider(
     }.toVector
   }
 
-  /** Resync the all-images CSV's rows (the images in no per-year CSV): a live
-    * revid sweep of the Commons contest template, minus the per-year page ids,
-    * diffed against the Commons-hosted cached rows, plus a fresh fetch of the
-    * uk.wikipedia-hosted images (small set, different page-id space, so always
-    * refetched rather than diffed). Cached rows are Commons-hosted unless their
-    * `page_url` says otherwise; uk.wiki rows are never treated as deleted by the
-    * Commons sweep. The per-year images, synced through their own CSVs, are
-    * joined in front, as on the full-rebuild path. */
+  /** Resync the all-images CSV's rows (the images in no per-year CSV): a live revid sweep of the
+    * Commons contest template, minus the per-year page ids, diffed against the Commons-hosted
+    * cached rows, plus a fresh fetch of the uk.wikipedia-hosted images (small set, different
+    * page-id space, so always refetched rather than diffed). Cached rows are Commons-hosted unless
+    * their `page_url` says otherwise; uk.wiki rows are never treated as deleted by the Commons
+    * sweep. The per-year images, synced through their own CSVs, are joined in front, as on the
+    * full-rebuild path.
+    */
   private def resyncTotalCsv(
       monumentDb: Option[MonumentDB],
       dbsByYear: Seq[ImageDB],
@@ -542,7 +595,11 @@ class ImageDbProvider(
     val perYearIds = ImageCsvExporter.perYearPageIds(dbsByYear)
     // skips the per-year copies an older, full all-images CSV still repeats
     val cached =
-      ImageCsvImporter.imagesFromCsv(path, image => !ImageCsvExporter.inPerYear(perYearIds)(image), pool = valuePool)
+      ImageCsvImporter.imagesFromCsv(
+        path,
+        image => !ImageCsvExporter.inPerYear(perYearIds)(image),
+        pool = valuePool
+      )
     val (cachedWiki, cachedCommons) = cached.partition(ImageCsvExporter.isProjectWikiHosted)
     val writtenAt = cacheWrittenAt(path)
     val query = imageQuery.getOrElse(liveImageQuery)
@@ -550,7 +607,9 @@ class ImageDbProvider(
       templateRevs <- query.imageIdsWithTemplate(contest)
       // per-year files are synced via their own CSVs; diffing them here would refetch them all
       commonsRevs = templateRevs.filterNot(r => perYearIds.contains(r.pageId))
-      freshWiki <- imageQueryWiki.map(_.imagesWithTemplate(contest)).getOrElse(Future.successful(Nil))
+      freshWiki <- imageQueryWiki
+        .map(_.imagesWithTemplate(contest))
+        .getOrElse(Future.successful(Nil))
       // an empty uk.wiki refetch when one was configured means the fetch failed;
       // fall back to the cached wiki rows and, since some of those may sit in
       // cachedCommons (rows cached without a page_url can't be told apart), also
@@ -576,17 +635,28 @@ class ImageDbProvider(
         extraImages = wiki,
         sweepComplete = wikiFetchTrustworthy &&
           sweepLooksComplete(commonsRevs.size, cachedCommons.count(_.pageId.isDefined), None),
-        deleted = Some(DeletedFiles(DeletedImagesCsv.totalFilename(contest.campaign, csvDir), query.missingPageIds))
+        deleted = Some(
+          DeletedFiles(
+            DeletedImagesCsv.totalFilename(contest.campaign, csvDir),
+            query.missingPageIds
+          )
+        )
       )
-    } yield new ImageDB(contest, dbsByYear.flatMap(_.images) ++ extras.images, monumentDb, config.minMpx)
+    } yield new ImageDB(
+      contest,
+      dbsByYear.flatMap(_.images) ++ extras.images,
+      monumentDb,
+      config.minMpx
+    )
   }
 
   /** The last full fetch or incremental year sync. */
   private var lastFullFetch: Future[Any] = Future.unit
 
-  /** Serialize network-backed year builds, including resyncs. CSV-only reads
-    * remain cheap; changed years hold full rows only while rewriting their CSV,
-    * then return slim rows before the next year starts. */
+  /** Serialize network-backed year builds, including resyncs. CSV-only reads remain cheap; changed
+    * years hold full rows only while rewriting their CSV, then return slim rows before the next
+    * year starts.
+    */
   private def oneYearFetchAtATime[T](fetch: => Future[T]): Future[T] = synchronized {
     val result = lastFullFetch.transformWith(_ => fetch)
     lastFullFetch = result

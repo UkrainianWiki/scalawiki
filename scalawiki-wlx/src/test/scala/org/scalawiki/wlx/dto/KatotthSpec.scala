@@ -83,9 +83,8 @@ class KatotthSpec extends Specification {
   "level2" should {
 
     "have 490 raions" in {
-      val withoutCities = Country.Ukraine.regions.filter(adm =>
-        !Set("Київ", "Севастополь").contains(adm.name)
-      )
+      val withoutCities =
+        Country.Ukraine.regions.filter(adm => !Set("Київ", "Севастополь").contains(adm.name))
       withoutCities.size === 25
 
       val raions =

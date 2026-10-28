@@ -125,9 +125,8 @@ class WriteWatcherSpec extends Specification {
       WriteWatcher.enable()
       try {
         val conflict = new RuntimeException("editconflict")
-        val f = WriteWatcher.submit("conflicted", benign = _ => true)(() =>
-          Future.failed[Int](conflict)
-        )
+        val f =
+          WriteWatcher.submit("conflicted", benign = _ => true)(() => Future.failed[Int](conflict))
         Await.result(f.failed, 2.seconds) === conflict
 
         val failures = WriteWatcher.awaitQuiescence(settle = 300.millis)

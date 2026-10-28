@@ -2,15 +2,13 @@ package org.scalawiki.xml
 
 import java.io.{IOException, FilterInputStream, InputStream}
 
-/** Reads just the specified blocks from the underlying input stream, skipping
-  * over everything else.
+/** Reads just the specified blocks from the underlying input stream, skipping over everything else.
   * @param in
   *   underlying input stream
   * @param blocks
   *   blocks to read
   */
-class SkippingInputStream(in: InputStream, val blocks: Seq[Block])
-    extends FilterInputStream(in) {
+class SkippingInputStream(in: InputStream, val blocks: Seq[Block]) extends FilterInputStream(in) {
 
   private var offset: Long = 0L
   private var mark: Long = -1

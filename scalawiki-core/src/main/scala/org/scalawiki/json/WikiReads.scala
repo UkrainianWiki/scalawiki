@@ -160,9 +160,7 @@ case class RevisionRead(override val pageId: Option[Long])
     revisionRead.reads(json)
 }
 
-case class GlobalUserInfoReads()
-    extends WikiResponseReads
-    with WikiReads[GlobalUserInfo] {
+case class GlobalUserInfoReads() extends WikiResponseReads with WikiReads[GlobalUserInfo] {
 
   import play.api.libs.functional.syntax._
 
@@ -230,9 +228,7 @@ case class ImageReads(
   override def reads(json: JsValue): JsResult[Image] = imagesRead.reads(json)
 }
 
-case class CategoryInfoReads()
-    extends WikiResponseReads
-    with WikiReads[CategoryInfo] {
+case class CategoryInfoReads() extends WikiResponseReads with WikiReads[CategoryInfo] {
 
   import play.api.libs.functional.syntax._
 
@@ -247,9 +243,7 @@ case class CategoryInfoReads()
     categoryRead.reads(json)
 }
 
-case class UserContributorReads()
-    extends WikiResponseReads
-    with WikiReads[UserContrib] {
+case class UserContributorReads() extends WikiResponseReads with WikiReads[UserContrib] {
 
   import play.api.libs.functional.syntax._
 

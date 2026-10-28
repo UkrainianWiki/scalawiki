@@ -15,11 +15,9 @@ case class NumberOfImagesInPlaceBonus(
   val oldImagesDb = new ImageDB(stat.contest, oldImages, stat.monumentDb)
   val perPlaceStat = PerPlaceStat(oldImagesDb)
   val unknownPlaceMonumentsByAuthor = mutable.Map[String, Set[String]]()
-  val authorsByMonument: Map[String, Set[String]] = oldImagesByMonumentId
-    .mapValues { images =>
-      images.map(_.author.getOrElse("")).toSet
-    }
-    .toMap
+  val authorsByMonument: Map[String, Set[String]] = oldImagesByMonumentId.mapValues { images =>
+    images.map(_.author.getOrElse("")).toSet
+  }.toMap
 
   val distribution: Map[Int, Int] = perPlaceStat.distribution
 

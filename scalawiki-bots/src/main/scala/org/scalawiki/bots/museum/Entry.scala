@@ -1,11 +1,6 @@
 package org.scalawiki.bots.museum
 
-import com.typesafe.config.{
-  Config,
-  ConfigFactory,
-  ConfigRenderOptions,
-  ConfigValueFactory
-}
+import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions, ConfigValueFactory}
 import net.ceedubs.ficus.FicusConfig
 
 case class Diff[T](name: String, before: T, after: T)

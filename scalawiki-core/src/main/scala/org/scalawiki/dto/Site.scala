@@ -69,7 +69,7 @@ object Site {
     list match {
       case code :: "wikimedia" :: "org" :: Nil => wikimedia(code)
       case code :: family :: "org" :: Nil      => project(code, family)
-      case _ => Site(None, host, host, protocol, port)
+      case _                                   => Site(None, host, host, protocol, port)
     }
   }
 }

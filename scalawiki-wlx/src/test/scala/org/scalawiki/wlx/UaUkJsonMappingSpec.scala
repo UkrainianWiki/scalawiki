@@ -63,7 +63,7 @@ class UaUkJsonMappingSpec extends Specification {
       val result = UaUkJsonMapping.applyMapping(row, mapping)
       result must haveKey("name")
       result("name") must_== "Церква Святого Миколая"
-      result must not haveKey("назва")
+      result must not haveKey ("назва")
     }
 
     "emit multiple columns for duplicate-source field (галерея → commonscat + gallery)" in {
@@ -73,7 +73,7 @@ class UaUkJsonMappingSpec extends Specification {
       result must haveKey("gallery")
       result("commonscat") must_== "Churches in Kyiv"
       result("gallery") must_== "Churches in Kyiv"
-      result must not haveKey("галерея")
+      result must not haveKey ("галерея")
     }
 
     "remap via sql_data Field (rayon → adm2)" in {
@@ -82,8 +82,8 @@ class UaUkJsonMappingSpec extends Specification {
       val result = UaUkJsonMapping.applyMapping(row, mapping)
       result must haveKey("adm2")
       result("adm2") must_== "Шевченківський"
-      result must not haveKey("rayon")
-      result must not haveKey("район")
+      result must not haveKey ("rayon")
+      result must not haveKey ("район")
     }
 
     "inject Text literal (adm0 = ua, lang = uk)" in {
@@ -113,8 +113,8 @@ class UaUkJsonMappingSpec extends Specification {
       // are not produced by any fields mapping — neither appears in output
       val row = Map("ID" -> "14-101-0001")
       val result = UaUkJsonMapping.applyMapping(row, mapping)
-      result must not haveKey("source")
-      result must not haveKey("changed")
+      result must not haveKey ("source")
+      result must not haveKey ("changed")
     }
 
     "keep empty-dest source field under its original name (general rule, tested via паспорт and наказ)" in {
@@ -135,23 +135,23 @@ class UaUkJsonMappingSpec extends Specification {
 
     "full round-trip: realistic monument row" in {
       val row = Map(
-        "ID"      -> "14-101-0001",
-        "назва"   -> "Будинок Городецького",
-        "район"   -> "Печерський",
-        "iso"     -> "UA-30",
-        "широта"  -> "50.4501",
+        "ID" -> "14-101-0001",
+        "назва" -> "Будинок Городецького",
+        "район" -> "Печерський",
+        "iso" -> "UA-30",
+        "широта" -> "50.4501",
         "довгота" -> "30.5234",
-        "фото"    -> "Horodetsky House.jpg"
+        "фото" -> "Horodetsky House.jpg"
       )
       val result = UaUkJsonMapping.applyMapping(row, mapping)
-      result("id")       must_== "14-101-0001"
-      result("name")     must_== "Будинок Городецького"
-      result("adm2")     must_== "Печерський"
-      result("lat")      must_== "50.4501"
-      result("lon")      must_== "30.5234"
-      result("image")    must_== "Horodetsky House.jpg"
-      result("adm0")     must_== "ua"
-      result("lang")     must_== "uk"
+      result("id") must_== "14-101-0001"
+      result("name") must_== "Будинок Городецького"
+      result("adm2") must_== "Печерський"
+      result("lat") must_== "50.4501"
+      result("lon") must_== "30.5234"
+      result("image") must_== "Horodetsky House.jpg"
+      result("adm0") must_== "ua"
+      result("lang") must_== "uk"
     }
   }
 
@@ -180,7 +180,7 @@ class UaUkJsonMappingSpec extends Specification {
       // adm1 is Raw — must not be in the first section of headers
       mapping.sqlMap.get("adm1").map(_.entryType) must beSome("Raw")
       val firstSection = headers.take(sqlNonRaw.size)
-      firstSection must not contain("adm1")
+      firstSection must not contain ("adm1")
     }
   }
 }

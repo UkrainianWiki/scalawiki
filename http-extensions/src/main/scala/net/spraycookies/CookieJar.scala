@@ -132,9 +132,7 @@ class CookieJar(blacklist: EffectiveTldList) {
         case head :: tail ⇒
           lazy val newSubJar = CookieJar_(head, Map.empty, Map.empty)
           val subJar = subdomains.getOrElse(head, newSubJar)
-          this.copy(subdomains =
-            subdomains + (head -> subJar._setCookie(tail, cookie))
-          )
+          this.copy(subdomains = subdomains + (head -> subJar._setCookie(tail, cookie)))
       }
     }
 

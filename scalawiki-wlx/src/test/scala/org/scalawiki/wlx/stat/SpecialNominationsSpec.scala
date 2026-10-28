@@ -126,7 +126,10 @@ class SpecialNominationsSpec extends Specification {
     }
 
     "load the video nomination" in {
-      SpecialNomination.load("wlm_ua.conf").find(_.name == "Відео").map(sn => (sn.mediaType, sn.years)) ===
+      SpecialNomination
+        .load("wlm_ua.conf")
+        .find(_.name == "Відео")
+        .map(sn => (sn.mediaType, sn.years)) ===
         Some((Some(SpecialNomination.Video), Seq(2024, 2025, 2026)))
     }
 
@@ -154,7 +157,15 @@ class SpecialNominationsSpec extends Specification {
         "96" -> "Пам'ятки дерев'яної архітектури України",
         "99" -> "Єврейська спадщина"
       )
-      SpecialNomination.byIdPrefix(nominations, 2026).keySet === Set("00", "90", "92", "93", "94", "96", "99")
+      SpecialNomination.byIdPrefix(nominations, 2026).keySet === Set(
+        "00",
+        "90",
+        "92",
+        "93",
+        "94",
+        "96",
+        "99"
+      )
     }
 
     "name the id prefixes of any year's nominations" in {
@@ -164,7 +175,8 @@ class SpecialNominationsSpec extends Specification {
     }
 
     "reject an unknown media type" in {
-      val config = ConfigFactory.parseString("""nominations: [{name: "Аудіо", mediaType: "audio"}]""")
+      val config =
+        ConfigFactory.parseString("""nominations: [{name: "Аудіо", mediaType: "audio"}]""")
       SpecialNomination.fromConfig(config) must throwA[IllegalArgumentException]
     }
   }
@@ -179,7 +191,9 @@ class SpecialNominationsSpec extends Specification {
     }
 
     "take files with the nomination's file template" in {
-      film.matchesFile(Image("File:Church.jpg", specialNominations = Set("WLM2026-UA-film"))) must beTrue
+      film.matchesFile(
+        Image("File:Church.jpg", specialNominations = Set("WLM2026-UA-film"))
+      ) must beTrue
       film.matchesFile(Image("File:Church.webm", mediaType = Some("VIDEO"))) must beFalse
     }
   }

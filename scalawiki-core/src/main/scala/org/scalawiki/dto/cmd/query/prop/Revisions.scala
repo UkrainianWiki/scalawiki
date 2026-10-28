@@ -6,8 +6,7 @@ import org.scalawiki.dto.cmd._
 import org.scalawiki.dto.cmd.query.Module
 import org.scalawiki.dto.cmd.query.prop.rvprop.RvProp
 
-/** ?action=query&amp;prop=revisions See more at
-  * https://www.mediawiki.org/wiki/API:Revisions
+/** ?action=query&amp;prop=revisions See more at https://www.mediawiki.org/wiki/API:Revisions
   */
 case class Revisions(override val params: RvParam*)
     extends Module[PropArg]("rv", "revisions", "Get revision information.")
@@ -57,13 +56,9 @@ package rvprop {
 
   /** rvprop= arguments
     */
-  object Ids
-      extends EnumArgument[RvPropArg]("ids", "The ID of the revision.")
-      with RvPropArg
+  object Ids extends EnumArgument[RvPropArg]("ids", "The ID of the revision.") with RvPropArg
 
-  object Flags
-      extends EnumArgument[RvPropArg]("flags", "Revision flags (minor).")
-      with RvPropArg
+  object Flags extends EnumArgument[RvPropArg]("flags", "Revision flags (minor).") with RvPropArg
 
   object Timestamp
       extends EnumArgument[RvPropArg](
@@ -72,9 +67,7 @@ package rvprop {
       )
       with RvPropArg
 
-  object User
-      extends EnumArgument[RvPropArg]("user", "User that made the revision.")
-      with RvPropArg
+  object User extends EnumArgument[RvPropArg]("user", "User that made the revision.") with RvPropArg
 
   object UserId
       extends EnumArgument[RvPropArg](
@@ -115,13 +108,9 @@ package rvprop {
       )
       with RvPropArg
 
-  object Content
-      extends EnumArgument[RvPropArg]("content", "Text of the revision.")
-      with RvPropArg
+  object Content extends EnumArgument[RvPropArg]("content", "Text of the revision.") with RvPropArg
 
-  object Tags
-      extends EnumArgument[RvPropArg]("tags", "Tags for the revision.")
-      with RvPropArg
+  object Tags extends EnumArgument[RvPropArg]("tags", "Tags for the revision.") with RvPropArg
 
 }
 
@@ -155,12 +144,8 @@ case class RvDir(override val args: RvDirArg*)
 
 trait RvDirArg extends EnumArg[RvDirArg] { val param = RvDir }
 
-object Older
-    extends EnumArgument[RvDirArg]("older", "List newest revisions first.")
-    with RvDirArg
-object Newer
-    extends EnumArgument[RvDirArg]("newer", "List oldest revisions first.")
-    with RvDirArg
+object Older extends EnumArgument[RvDirArg]("older", "List newest revisions first.") with RvDirArg
+object Newer extends EnumArgument[RvDirArg]("newer", "List oldest revisions first.") with RvDirArg
 
 case class RvUser(override val arg: String)
     extends StringParameter("rvuser", "Only list revisions made by this user.")
@@ -207,15 +192,9 @@ case class RvDiffTo(override val args: RvDiffToArg*)
 
 trait RvDiffToArg extends EnumArg[RvDiffToArg] { val param = RvDiffTo }
 
-object Prev
-    extends EnumArgument[RvDiffToArg]("prev", "previous revision.")
-    with RvDiffToArg
-object Next
-    extends EnumArgument[RvDiffToArg]("next", "next revision.")
-    with RvDiffToArg
-object Cur
-    extends EnumArgument[RvDiffToArg]("cur", "current revision.")
-    with RvDiffToArg
+object Prev extends EnumArgument[RvDiffToArg]("prev", "previous revision.") with RvDiffToArg
+object Next extends EnumArgument[RvDiffToArg]("next", "next revision.") with RvDiffToArg
+object Cur extends EnumArgument[RvDiffToArg]("cur", "current revision.") with RvDiffToArg
 
 case class RvDiffToText(override val arg: String)
     extends StringParameter("rvdifftotext", "Text to diff each revision to.")

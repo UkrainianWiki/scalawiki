@@ -6,19 +6,19 @@ import org.scalawiki.wlx.stat.{ContestStat, StatConfig}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-/** Turns gathered contest data into published output: runs every configured
-  * report, then blocks until every wiki write it triggered has settled.
+/** Turns gathered contest data into published output: runs every configured report, then blocks
+  * until every wiki write it triggered has settled.
   *
-  * Each report step is isolated (via [[ReporterRegistry]]) so one failing step
-  * no longer aborts the rest; recovered edit conflicts are not counted as
-  * failures.
+  * Each report step is isolated (via [[ReporterRegistry]]) so one failing step no longer aborts the
+  * rest; recovered edit conflicts are not counted as failures.
   */
 class ReportRunner(stat: ContestStat, config: StatConfig) {
 
   /** Run the reports, wait for publishing, print the `=== Publish summary ===`.
     *
-    * @return the number of failures (report steps that threw + wiki writes that
-    *         errored). 0 means a clean run.
+    * @return
+    *   the number of failures (report steps that threw + wiki writes that errored). 0 means a clean
+    *   run.
     */
   def run(): Int = {
     val stepErrors =

@@ -58,17 +58,13 @@ object CampaignList extends CampaignList with WithBot {
       types: Seq[ContestType] = ContestType.all
   ): Future[Seq[Contest]] = {
     for (yearsCats <- categoriesMembers(types.map(_.imagesCategory)))
-      yield for (
-        contest <- titles(yearsCats).flatMap(CountryParser.fromCategoryName)
-      )
+      yield for (contest <- titles(yearsCats).flatMap(CountryParser.fromCategoryName))
         yield contest
   }
 
   def main(args: Array[String]): Unit = {
     for (yearContests <- yearsContests()) {
-      for (
-        campaignCats <- categoriesMembers(yearContests.map(_.imagesCategory))
-      ) {
+      for (campaignCats <- categoriesMembers(yearContests.map(_.imagesCategory))) {
         titles(campaignCats).foreach(println)
       }
     }

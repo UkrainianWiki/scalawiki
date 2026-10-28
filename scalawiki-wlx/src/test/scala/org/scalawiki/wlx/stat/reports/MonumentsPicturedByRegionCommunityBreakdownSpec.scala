@@ -7,13 +7,12 @@ import org.scalawiki.wlx.stat.ContestStat
 import org.scalawiki.wlx.{ImageDB, MonumentDB}
 import org.specs2.mutable.Specification
 
-/** Exercises [[MonumentsPicturedByRegion.communityBreakdown]] - the text
-  * written to an oblast's regional-detail wiki page - against real KATOTTH
-  * resolution data, spanning two oblasts and a monument with no resolvable
-  * place. This is the same string [[MonumentsPicturedByRegion.asText]]
-  * would send to the wiki; it is tested directly here rather than through
-  * `Output.regionalStat`'s live `bot.page(...).edit(...)` call, since this
-  * suite has no wiki-write mocking to intercept that with.
+/** Exercises [[MonumentsPicturedByRegion.communityBreakdown]] - the text written to an oblast's
+  * regional-detail wiki page - against real KATOTTH resolution data, spanning two oblasts and a
+  * monument with no resolvable place. This is the same string [[MonumentsPicturedByRegion.asText]]
+  * would send to the wiki; it is tested directly here rather than through `Output.regionalStat`'s
+  * live `bot.page(...).edit(...)` call, since this suite has no wiki-write mocking to intercept
+  * that with.
   */
 class MonumentsPicturedByRegionCommunityBreakdownSpec extends Specification {
 
@@ -221,7 +220,8 @@ class MonumentsPicturedByRegionCommunityBreakdownSpec extends Specification {
       val realHromadaMonument = Monument(
         id = "32-100-0002",
         name = "In a real hromada",
-        page = "Вікіпедія:Вікі любить пам'ятки/Київська область/Вишгородський район/Димерська громада",
+        page =
+          "Вікіпедія:Вікі любить пам'ятки/Київська область/Вишгородський район/Димерська громада",
         listConfig = Some(WlmUa)
       )
       val mdb = new MonumentDB(contest, Seq(exclusionZoneMonument, realHromadaMonument))

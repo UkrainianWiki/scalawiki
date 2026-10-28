@@ -8,10 +8,9 @@ import org.scalawiki.wlx.stat.ContestStat
   * @param baseRate
   *   points every eligible monument photo gets
   * @param regionRates
-  *   per-region base rate overrides keyed by region id (first two digits of the
-  *   monument id). WLM UA 2026 rule 9.4 raises the base rate to 10 for monuments in
-  *   the mostly-occupied regions (AR Crimea and Sevastopol, Donetsk, Zaporizhzhia,
-  *   Luhansk and Kherson oblasts).
+  *   per-region base rate overrides keyed by region id (first two digits of the monument id). WLM
+  *   UA 2026 rule 9.4 raises the base rate to 10 for monuments in the mostly-occupied regions (AR
+  *   Crimea and Sevastopol, Donetsk, Zaporizhzhia, Luhansk and Kherson oblasts).
   */
 case class NumberOfMonuments(
     stat: ContestStat,

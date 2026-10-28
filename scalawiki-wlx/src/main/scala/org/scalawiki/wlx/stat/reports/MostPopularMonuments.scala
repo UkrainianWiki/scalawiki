@@ -11,17 +11,17 @@ class MostPopularMonuments(val stat: ContestStat) extends Reporter {
       totalImageDb: ImageDB,
       monumentDb: MonumentDB
   ) = this(
-      ContestStat(
-        monumentDb.contest,
-        imageDbs.headOption
-          .map(_.contest.year)
-          .getOrElse(monumentDb.contest.year),
-        Some(monumentDb),
-        imageDbs.lastOption.getOrElse(totalImageDb),
-        totalImageDb,
-        imageDbs // .headOption.map(_ => imageDbs.init).getOrElse(Seq.empty)
-      )
+    ContestStat(
+      monumentDb.contest,
+      imageDbs.headOption
+        .map(_.contest.year)
+        .getOrElse(monumentDb.contest.year),
+      Some(monumentDb),
+      imageDbs.lastOption.getOrElse(totalImageDb),
+      totalImageDb,
+      imageDbs // .headOption.map(_ => imageDbs.init).getOrElse(Seq.empty)
     )
+  )
 
   val name = "Most photographed objects"
 

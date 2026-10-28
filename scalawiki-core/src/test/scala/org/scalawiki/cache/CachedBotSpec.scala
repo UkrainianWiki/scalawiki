@@ -18,7 +18,12 @@ class CachedBotSpec extends Specification {
 
     "use an explicitly given HTTP client" in {
       val http = HttpClient.get(MwBot.system)
-      new CachedBot(Site.host("cached-bot-spec-2.example.org"), "cached-bot-spec-2", persistent = false, http).http must
+      new CachedBot(
+        Site.host("cached-bot-spec-2.example.org"),
+        "cached-bot-spec-2",
+        persistent = false,
+        http
+      ).http must
         beTheSameAs(http)
     }
   }

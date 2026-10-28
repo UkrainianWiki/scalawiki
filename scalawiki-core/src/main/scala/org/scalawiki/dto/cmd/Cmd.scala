@@ -57,26 +57,20 @@ abstract class SingleParameter[T] extends Parameter[T] {
 abstract class StringListParameter(val name: String, val summary: String)
     extends ListParameter[String]
 
-abstract class IntListParameter(val name: String, val summary: String)
-    extends ListParameter[Int]
+abstract class IntListParameter(val name: String, val summary: String) extends ListParameter[Int]
 
-abstract class LongListParameter(val name: String, val summary: String)
-    extends ListParameter[Long]
+abstract class LongListParameter(val name: String, val summary: String) extends ListParameter[Long]
 
-abstract class IdListParameter(val name: String, val summary: String)
-    extends ListParameter[Long]
+abstract class IdListParameter(val name: String, val summary: String) extends ListParameter[Long]
 
 abstract class StringParameter(val name: String, val summary: String)
     extends SingleParameter[String]
 
-abstract class IntParameter(val name: String, val summary: String)
-    extends SingleParameter[Int]
+abstract class IntParameter(val name: String, val summary: String) extends SingleParameter[Int]
 
-abstract class LongParameter(val name: String, val summary: String)
-    extends SingleParameter[Long]
+abstract class LongParameter(val name: String, val summary: String) extends SingleParameter[Long]
 
-abstract class IdParameter(val name: String, val summary: String)
-    extends SingleParameter[Long]
+abstract class IdParameter(val name: String, val summary: String) extends SingleParameter[Long]
 
 abstract class DateTimeParameter(val name: String, val summary: String)
     extends SingleParameter[ZonedDateTime] {
@@ -121,8 +115,7 @@ trait ActionArg extends EnumArg[ActionArg] {
   /*val param = ActionParam*/
 }
 
-case class Action(override val arg: ActionArg)
-    extends EnumParameter[ActionArg]("action", "") {
+case class Action(override val arg: ActionArg) extends EnumParameter[ActionArg]("action", "") {
   def query: Option[Query] = args.collectFirst { case q: Query => q }
   override def toString = pairs.toString()
 }

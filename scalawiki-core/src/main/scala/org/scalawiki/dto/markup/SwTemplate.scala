@@ -53,9 +53,9 @@ case class SwTemplate(wtNode: WtTemplate) extends SwNode {
     }
   }
 
-  /** Appends a new named parameter to the template. Used when the list template
-    * gained a field (e.g. WLM UA lists' new `бали` rating field) that a given row
-    * does not carry yet, so [[getArg]] finds nothing to update.
+  /** Appends a new named parameter to the template. Used when the list template gained a field
+    * (e.g. WLM UA lists' new `бали` rating field) that a given row does not carry yet, so
+    * [[getArg]] finds nothing to update.
     */
   def addTemplateParam(name: String, value: String): Unit = {
     val f = NodeFactory

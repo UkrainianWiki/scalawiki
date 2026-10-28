@@ -14,8 +14,8 @@ import scala.concurrent.Future
 import spray.util.pimpFuture
 import scala.io.Source
 
-/** Converts links to Wikimedia Commons files to short links (with file id) and
-  * tries to add image author and license
+/** Converts links to Wikimedia Commons files to short links (with file id) and tries to add image
+  * author and license
   */
 object ShortLinksBot {
   val commons = MwBot.fromHost(MwBot.commons)

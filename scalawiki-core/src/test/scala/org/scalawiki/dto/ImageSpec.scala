@@ -29,12 +29,18 @@ class ImageSpec extends Specification {
     }
 
     "get author from {{Зображення}} with English parameters, copied from Commons" in {
-      Image.getAuthorFromPage(zobrazhennya("Author", " [[User:Roman Zacharij|Roman Zacharij]]")) === "Roman Zacharij"
+      Image.getAuthorFromPage(
+        zobrazhennya("Author", " [[User:Roman Zacharij|Roman Zacharij]]")
+      ) === "Roman Zacharij"
     }
 
     "prefer {{Information}}, but skip its empty author" in {
-      Image.getAuthorFromPage(makeTemplate("[[User:A|A]]") + zobrazhennya("Автор", "[[Користувач:B|B]]")) === "A"
-      Image.getAuthorFromPage(makeTemplate("") + zobrazhennya("Автор", "[[Користувач:B|B]]")) === "B"
+      Image.getAuthorFromPage(
+        makeTemplate("[[User:A|A]]") + zobrazhennya("Автор", "[[Користувач:B|B]]")
+      ) === "A"
+      Image.getAuthorFromPage(
+        makeTemplate("") + zobrazhennya("Автор", "[[Користувач:B|B]]")
+      ) === "B"
     }
 
     "get no author from a page without a description template" in {
@@ -46,7 +52,9 @@ class ImageSpec extends Specification {
     "end a user link without a pipe at its brackets" in {
       Image.parseUser("[[User:Markv]].") === "Markv"
       Image.parseUser("[[User:Noebu]]) (Норберт Епли, Швейцария)") === "Noebu"
-      Image.parseUser("[[User:Sergey.rastafara]] original image; [[User:Kbh3rd]] retouched") === "Sergey.rastafara"
+      Image.parseUser(
+        "[[User:Sergey.rastafara]] original image; [[User:Kbh3rd]] retouched"
+      ) === "Sergey.rastafara"
     }
 
     "take the user from a user subpage" in {
@@ -59,7 +67,9 @@ class ImageSpec extends Specification {
       Image.parseUser("[[w:ru:Участник:Urum|urum]]") === "Urum"
       Image.parseUser("[[:pl:Wikipedysta:Lestat|Lestat]] (Jan Mehlich)") === "Lestat"
       Image.parseUser("{{lang|ru|[[:ru:Участник:Artemka|© Артёмка]]}}") === "Artemka"
-      Image.parseUser("*скульптор: Ніколаєв\n*фото: [[:uk:Користувач:Turzh|Користувач:Turzh]]") === "Turzh"
+      Image.parseUser(
+        "*скульптор: Ніколаєв\n*фото: [[:uk:Користувач:Turzh|Користувач:Turzh]]"
+      ) === "Turzh"
     }
 
     "take the user from a user template" in {
@@ -74,7 +84,9 @@ class ImageSpec extends Specification {
     "take the text of other links" in {
       Image.parseUser("[[:uk:Олег Кікта|Олег Кікта]]") === "Олег Кікта"
       Image.parseUser("[[Невідомий автор поч. ХХ ст.]]") === "Невідомий автор поч. ХХ ст."
-      Image.parseUser("Оксана Іванець / [[:uk:АрміяInform|АрміяInform]]") === "Оксана Іванець / АрміяInform"
+      Image.parseUser(
+        "Оксана Іванець / [[:uk:АрміяInform|АрміяInform]]"
+      ) === "Оксана Іванець / АрміяInform"
       Image.parseUser("{{lang|en|Flickr: BBM Explorer / Rob}}") === "Flickr: BBM Explorer / Rob"
     }
 
@@ -102,11 +114,16 @@ class ImageSpec extends Specification {
     def page(wiki: String, uploader: String) =
       Page("File:Image.jpg").copy(
         revisions = Seq(Revision.one(wiki)),
-        images = Seq(Image.basic("File:Image.jpg", None, Some(uploader), None, None, None, None, None, None))
+        images = Seq(
+          Image.basic("File:Image.jpg", None, Some(uploader), None, None, None, None, None, None)
+        )
       )
 
     "take the author from the page over the uploader" in {
-      Image.fromPage(None)(page(zobrazhennya("Автор", "[[Користувач:Kiyanka|Kiyanka]]"), "AMY 81-412")).get.author ===
+      Image
+        .fromPage(None)(page(zobrazhennya("Автор", "[[Користувач:Kiyanka|Kiyanka]]"), "AMY 81-412"))
+        .get
+        .author ===
         Some("Kiyanka")
     }
 
@@ -117,7 +134,10 @@ class ImageSpec extends Specification {
     }
 
     "not leave an unknown author to the uploader" in {
-      Image.fromPage(None)(page(makeTemplate("{{unknown|author}}"), "VileGecko")).get.author === Some("")
+      Image
+        .fromPage(None)(page(makeTemplate("{{unknown|author}}"), "VileGecko"))
+        .get
+        .author === Some("")
     }
   }
 

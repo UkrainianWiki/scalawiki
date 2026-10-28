@@ -5,18 +5,22 @@ import play.api.libs.json._
 import scala.io.{Codec, Source}
 
 /** A single sql_data entry.
-  * @param entryType "Field" (rename an existing key), "Text" (inject literal), or "Raw" (skip)
-  * @param value     field name (for Field) or literal value (for Text/Raw)
+  * @param entryType
+  *   "Field" (rename an existing key), "Text" (inject literal), or "Raw" (skip)
+  * @param value
+  *   field name (for Field) or literal value (for Text/Raw)
   */
 case class SqlEntry(entryType: String, value: String)
 
 /** The parsed ua_uk.json mapping.
   *
-  * @param fieldMap    source template param name → list of dest column names.
-  *                    Empty-dest entries in JSON are stored as Seq(source) (identity).
-  *                    Duplicate sources accumulate dest names in order of appearance.
-  * @param sqlMap      sql_data key → SqlEntry (all types: Field, Text, Raw)
-  * @param sqlKeyOrder sql_data keys in JSON insertion order (for stable CSV headers)
+  * @param fieldMap
+  *   source template param name → list of dest column names. Empty-dest entries in JSON are stored
+  *   as Seq(source) (identity). Duplicate sources accumulate dest names in order of appearance.
+  * @param sqlMap
+  *   sql_data key → SqlEntry (all types: Field, Text, Raw)
+  * @param sqlKeyOrder
+  *   sql_data keys in JSON insertion order (for stable CSV headers)
   */
 case class UaUkMapping(
     fieldMap: Map[String, Seq[String]],
@@ -27,21 +31,25 @@ case class UaUkMapping(
 object UaUkJsonMapping {
 
   /** Load ua_uk.json from the classpath.
-    * @param resourcePath e.g. "monuments_config/ua_uk.json"
+    * @param resourcePath
+    *   e.g. "monuments_config/ua_uk.json"
     */
   def load(resourcePath: String): UaUkMapping = {
     val source = Source.fromResource(resourcePath)(Codec.UTF8)
-    val raw    = try source.mkString finally source.close()
-    val json   = Json.parse(raw)
+    val raw =
+      try source.mkString
+      finally source.close()
+    val json = Json.parse(raw)
 
     // --- Level 1: fields array ---
     // Build fieldMap: source → Seq[dest]. Empty dest → Seq(source) (identity).
     // Duplicate sources accumulate dest names in order of appearance.
     val fields = (json \ "fields").as[JsArray].value
-    val fieldMapBuilder = scala.collection.mutable.LinkedHashMap.empty[String, scala.collection.mutable.ListBuffer[String]]
+    val fieldMapBuilder = scala.collection.mutable.LinkedHashMap
+      .empty[String, scala.collection.mutable.ListBuffer[String]]
 
     fields.foreach { entry =>
-      val src  = (entry \ "source").as[String]
+      val src = (entry \ "source").as[String]
       val dest = (entry \ "dest").as[String]
       if (dest.nonEmpty) { // empty dest → identity
         fieldMapBuilder
@@ -60,34 +68,29 @@ object UaUkJsonMapping {
     // .fields returns an IndexedSeq in that order.
     // Do NOT convert through Map at any point — doing so will lose insertion order.
     val sqlDataObj = (json \ "sql_data").as[JsObject]
-    val sqlEntries: Seq[(String, SqlEntry)] = sqlDataObj.fields.toSeq.map {
-      case (key, obj) =>
-        val entryType = (obj \ "type").as[String]
-        val value     = (obj \ "value").as[String]
-        key -> SqlEntry(entryType, value)
+    val sqlEntries: Seq[(String, SqlEntry)] = sqlDataObj.fields.toSeq.map { case (key, obj) =>
+      val entryType = (obj \ "type").as[String]
+      val value = (obj \ "value").as[String]
+      key -> SqlEntry(entryType, value)
     }
 
-    val sqlMap: Map[String, SqlEntry]   = sqlEntries.toMap
-    val sqlKeyOrder: Seq[String]        = sqlEntries.map(_._1)
+    val sqlMap: Map[String, SqlEntry] = sqlEntries.toMap
+    val sqlKeyOrder: Seq[String] = sqlEntries.map(_._1)
 
     UaUkMapping(fieldMap, sqlMap, sqlKeyOrder)
   }
 
   /** Apply two-level mapping to one monument row.
     *
-    * Step 1 (Level 1 — fields):
-    *   For each (key, value) in row:
-    *     if fieldMap contains key → emit (dest, value) for each dest in fieldMap(key)
-    *     else                    → emit (key, value) unchanged
+    * Step 1 (Level 1 — fields): For each (key, value) in row: if fieldMap contains key → emit
+    * (dest, value) for each dest in fieldMap(key) else → emit (key, value) unchanged
     *
-    * Step 2 (Level 2 — sql_data Field entries):
-    *   case A: sqlEntry.value absent from intermediateRow → skip
-    *   case B: sqlKey == sqlEntry.value                  → no-op
-    *   case C: sqlKey not yet in intermediateRow         → rename sqlEntry.value → sqlKey
-    *   case D: sqlKey already in intermediateRow         → keep sqlKey, drop sqlEntry.value
+    * Step 2 (Level 2 — sql_data Field entries): case A: sqlEntry.value absent from intermediateRow
+    * → skip case B: sqlKey == sqlEntry.value → no-op case C: sqlKey not yet in intermediateRow →
+    * rename sqlEntry.value → sqlKey case D: sqlKey already in intermediateRow → keep sqlKey, drop
+    * sqlEntry.value
     *
-    * Step 3 (Level 2 — sql_data Text entries):
-    *   Inject sqlKey → literal value into every row.
+    * Step 3 (Level 2 — sql_data Text entries): Inject sqlKey → literal value into every row.
     *
     * Raw entries are skipped in all steps.
     */
@@ -100,8 +103,9 @@ object UaUkJsonMapping {
     var intermediate = Map.empty[String, String]
     for ((key, value) <- row) {
       mapping.fieldMap.get(key) match {
-        case Some(dests) => dests.foreach { dest => intermediate = intermediate.updated(dest, value) }
-        case None        => //intermediate = intermediate.updated(key, value)
+        case Some(dests) =>
+          dests.foreach { dest => intermediate = intermediate.updated(dest, value) }
+        case None => // intermediate = intermediate.updated(key, value)
       }
     }
 
@@ -137,15 +141,17 @@ object UaUkJsonMapping {
   /** Compute CSV header columns in deterministic order.
     *
     * Order:
-    *   1. sql_data keys (Field + Text only, excluding Raw) in sqlKeyOrder insertion order.
-    *      Raw sql_data keys are NOT included in section 1.
-    *   2. All remaining keys found across all rows, alphabetically sorted.
-    *      "Remaining" = any row key NOT in sqlKeySet (the Field+Text set).
-    *      Raw sql_data keys (e.g. "adm1") are not in sqlKeySet, so if a row has an "adm1"
-    *      key it falls into the alphabetical section — not the sql first section.
+    *   1. sql_data keys (Field + Text only, excluding Raw) in sqlKeyOrder insertion order. Raw
+    *      sql_data keys are NOT included in section 1.
+    *   2. All remaining keys found across all rows, alphabetically sorted. "Remaining" = any row
+    *      key NOT in sqlKeySet (the Field+Text set). Raw sql_data keys (e.g. "adm1") are not in
+    *      sqlKeySet, so if a row has an "adm1" key it falls into the alphabetical section — not the
+    *      sql first section.
     *
-    * @param mappedRows rows that have already had applyMapping applied
-    * @param mapping    the UaUkMapping (for sqlKeyOrder)
+    * @param mappedRows
+    *   rows that have already had applyMapping applied
+    * @param mapping
+    *   the UaUkMapping (for sqlKeyOrder)
     */
   def headerColumns(
       mappedRows: Iterable[Map[String, String]],

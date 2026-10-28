@@ -9,9 +9,9 @@ import org.specs2.mutable.Specification
 
 import java.time.ZonedDateTime
 
-/** End-to-end check of the WLM UA 2026 rating built from wlm_ua.conf (Регламент
-  * п. 7.3-7.4, 9.4). Place-based bonus (п. 7.3.3) stays 0 here because the fabricated
-  * monuments have no resolvable settlement.
+/** End-to-end check of the WLM UA 2026 rating built from wlm_ua.conf (Регламент п. 7.3-7.4, 9.4).
+  * Place-based bonus (п. 7.3.3) stays 0 here because the fabricated monuments have no resolvable
+  * settlement.
   */
 class Rater2026Spec extends Specification {
 
@@ -101,7 +101,9 @@ class Rater2026Spec extends Specification {
 
     "explain the score breakdown" in {
       rater.explain(freshWar, "participant") must contain("Base rate for region 01 = 10.0")
-      rater.explain(freshWar, "participant") must contain("Pictured before by 0 (0-0) authors = 12.0")
+      rater.explain(freshWar, "participant") must contain(
+        "Pictured before by 0 (0-0) authors = 12.0"
+      )
       rater.explain(freshWar, "participant") must contain("interior images existed, bonus = 5.0")
     }
   }

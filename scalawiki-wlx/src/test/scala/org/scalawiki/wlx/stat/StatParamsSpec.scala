@@ -19,7 +19,9 @@ class StatParamsSpec extends Specification {
     "refuse resync-only with disabled or user-managed caches" in {
       StatParams.parse(Seq("--campaign", "wlm-ua", "--resync-only", "--no-csv-cache")) must
         throwA[IllegalArgumentException]
-      StatParams.parse(Seq("--campaign", "wlm-ua", "--resync-only", "--images-from-csv", "input")) must
+      StatParams.parse(
+        Seq("--campaign", "wlm-ua", "--resync-only", "--images-from-csv", "input")
+      ) must
         throwA[IllegalArgumentException]
     }
 
@@ -127,8 +129,7 @@ class StatParamsSpec extends Specification {
         StatConfig(
           "wle-ua",
           Seq(thisYear),
-          rateConfig =
-            RateConfig(numberOfAuthorsBonus = true, numberOfImagesBonus = true)
+          rateConfig = RateConfig(numberOfAuthorsBonus = true, numberOfImagesBonus = true)
         )
     }
 
@@ -216,7 +217,9 @@ class StatParamsSpec extends Specification {
     }
 
     "be enabled by --allow-past-year-rating" in {
-      StatParams.parse(Seq("--campaign", "WLM-UA", "--allow-past-year-rating")).allowPastYearRating must beTrue
+      StatParams
+        .parse(Seq("--campaign", "WLM-UA", "--allow-past-year-rating"))
+        .allowPastYearRating must beTrue
     }
   }
 

@@ -71,17 +71,11 @@ case class CmType(override val args: CmTypeArg*)
     )
     with CmParam[CmTypeArg]
 
-object CmTypePage
-    extends EnumArgument[CmTypeArg]("page", "pages")
-    with CmTypeArg
+object CmTypePage extends EnumArgument[CmTypeArg]("page", "pages") with CmTypeArg
 
-object CmTypeSubCat
-    extends EnumArgument[CmTypeArg]("subcat", "subcats")
-    with CmTypeArg
+object CmTypeSubCat extends EnumArgument[CmTypeArg]("subcat", "subcats") with CmTypeArg
 
-object CmTypeFile
-    extends EnumArgument[CmTypeArg]("file", "files")
-    with CmTypeArg
+object CmTypeFile extends EnumArgument[CmTypeArg]("file", "files") with CmTypeArg
 
 trait CmPropArg extends EnumArg[CmPropArg] {
   val param = CmProp
@@ -96,9 +90,7 @@ case class CmProp(override val args: CmPropArg*)
 
 package cmprop {
 
-  object Ids
-      extends EnumArgument[CmPropArg]("ids", "Adds the page ID.")
-      with CmPropArg
+  object Ids extends EnumArgument[CmPropArg]("ids", "Adds the page ID.") with CmPropArg
 
   object Title
       extends EnumArgument[CmPropArg](

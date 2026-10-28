@@ -5,8 +5,7 @@ import java.time.ZonedDateTime
 import org.scalawiki.dto.cmd._
 import org.scalawiki.dto.cmd.query.Module
 
-/** ?action=query&amp;prop=imageinfo See more at
-  * https://www.mediawiki.org/wiki/API:Imageinfo
+/** ?action=query&amp;prop=imageinfo See more at https://www.mediawiki.org/wiki/API:Imageinfo
   */
 case class ImageInfo(override val params: IiParam*)
     extends Module[PropArg]("ii", "imageinfo", "Gets image information.")
@@ -99,13 +98,9 @@ package iiprop {
       )
       with IiPropArg
 
-  object Sha1
-      extends EnumArgument[IiPropArg]("sha1", "The image's SHA-1 hash.")
-      with IiPropArg
+  object Sha1 extends EnumArgument[IiPropArg]("sha1", "The image's SHA-1 hash.") with IiPropArg
 
-  object Mime
-      extends EnumArgument[IiPropArg]("mime", "The image's MIME type.")
-      with IiPropArg
+  object Mime extends EnumArgument[IiPropArg]("mime", "The image's MIME type.") with IiPropArg
 
   object ThumbMime
       extends EnumArgument[IiPropArg](

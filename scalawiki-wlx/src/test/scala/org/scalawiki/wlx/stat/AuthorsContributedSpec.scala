@@ -29,32 +29,47 @@ class AuthorsContributedSpec extends Specification {
       namePrefix: String,
       startId: Int = 1
   ): Seq[Monument] =
-    (startId until startId + n).map(i =>
-      monument(s"$regionId-xxx-000$i", namePrefix + i)
-    )
+    (startId until startId + n).map(i => monument(s"$regionId-xxx-000$i", namePrefix + i))
 
-  /** Answers list=users, where a missing user and an invalid name come back without an id, and talk page texts: the
-    * old talk page of a renamed account redirects to the new one.
+  /** Answers list=users, where a missing user and an invalid name come back without an id, and talk
+    * page texts: the old talk page of a renamed account redirects to the new one.
     */
-  class UsersBot(renamed: Map[String, String] = Map.empty, redirect: String = "#REDIRECT [[User talk:%s]]")
-      extends ActionBot {
+  class UsersBot(
+      renamed: Map[String, String] = Map.empty,
+      redirect: String = "#REDIRECT [[User talk:%s]]"
+  ) extends ActionBot {
     private val queue = new ConcurrentLinkedQueue[Seq[String]]()
     def requested: Seq[Seq[String]] = queue.asScala.toSeq
     override def log = NoLogging
-    override def run(action: Action, context: Map[String, String], limit: Option[Long]): Future[Iterable[Page]] = {
+    override def run(
+        action: Action,
+        context: Map[String, String],
+        limit: Option[Long]
+    ): Future[Iterable[Page]] = {
       val params = action.pairs.toMap
       Future.successful(params.get("ususers") match {
         case Some(users) =>
           val names = users.split('|').toSeq
           queue.add(names)
           names.map { name =>
-            val exists = !(name.startsWith("Missing") || name.contains("#") || renamed.contains(name))
-            Page(None, Some(Namespace.USER), name, Seq(Revision(user = Some(User(Option.when(exists)(1L), Some(name))))))
+            val exists =
+              !(name.startsWith("Missing") || name.contains("#") || renamed.contains(name))
+            Page(
+              None,
+              Some(Namespace.USER),
+              name,
+              Seq(Revision(user = Some(User(Option.when(exists)(1L), Some(name)))))
+            )
           }
         case None =>
           params("titles").split('|').toSeq.flatMap { title =>
             renamed.get(title.stripPrefix("User talk:")).map { to =>
-              Page(Some(1L), Some(Namespace.USER_TALK), title, Seq(Revision.one(redirect.format(to))))
+              Page(
+                Some(1L),
+                Some(Namespace.USER_TALK),
+                title,
+                Seq(Revision.one(redirect.format(to)))
+              )
             }
           }
       })
@@ -157,7 +172,9 @@ class AuthorsContributedSpec extends Specification {
 
     "link the all-time count to the year-less author list page" in {
       val monumentDb = new MonumentDB(contest, monuments(1, "05", "Podillya"))
-      val images = Seq(Image("File:Img51.jpg", monumentIds = List("05-xxx-0001"), author = Some("FromPodillya")))
+      val images = Seq(
+        Image("File:Img51.jpg", monumentIds = List("05-xxx-0001"), author = Some("FromPodillya"))
+      )
 
       val table = new AuthorsStat().authorsContributedTable(
         Seq.empty,
@@ -181,7 +198,10 @@ class AuthorsContributedSpec extends Specification {
     "find the authors that have a Commons account" in {
       val bot = new UsersBot
       val existing = (1 to 60).map(i => s"Author_$i")
-      val accounts = Await.result(AuthorsStat.accounts(bot, existing ++ Seq("Missing one", "bad#name", "roma.wem")), 5.seconds)
+      val accounts = Await.result(
+        AuthorsStat.accounts(bot, existing ++ Seq("Missing one", "bad#name", "roma.wem")),
+        5.seconds
+      )
 
       accounts === (existing.map(_.replace('_', ' ')) :+ "Roma.wem").map(name => name -> name).toMap
       bot.requested.size === 2
@@ -189,13 +209,20 @@ class AuthorsContributedSpec extends Specification {
 
     "find the account an author was renamed to" in {
       val bot = new UsersBot(renamed = Map("Artemka" -> "Artemco", "Donbass360" -> "Сергей Орлик"))
-      Await.result(AuthorsStat.accounts(bot, Seq("Artemka", "Donbass360", "Missing one")), 5.seconds) ===
+      Await.result(
+        AuthorsStat.accounts(bot, Seq("Artemka", "Donbass360", "Missing one")),
+        5.seconds
+      ) ===
         Map("Artemka" -> "Artemco", "Donbass360" -> "Сергей Орлик")
     }
 
     "follow a redirect however it is spelled" in {
-      Seq("#redirect[[User talk:%s]]", "#Redirect [[user_talk:%s|talk]]", "#ПЕРЕНАПРАВЛЕННЯ [[Обговорення користувача:%s]]",
-        "  #перенаправлення[[:User talk:%s#top]]").map { redirect =>
+      Seq(
+        "#redirect[[User talk:%s]]",
+        "#Redirect [[user_talk:%s|talk]]",
+        "#ПЕРЕНАПРАВЛЕННЯ [[Обговорення користувача:%s]]",
+        "  #перенаправлення[[:User talk:%s#top]]"
+      ).map { redirect =>
         val bot = new UsersBot(renamed = Map("Artemka" -> "Artemco"), redirect = redirect)
         Await.result(AuthorsStat.accounts(bot, Seq("Artemka")), 5.seconds)
       } must contain(be_===(Map("Artemka" -> "Artemco"))).forall
@@ -211,8 +238,12 @@ class AuthorsContributedSpec extends Specification {
       val stat = ContestStat(contest, contest.year, Some(monumentDb), db, db, Seq(db))
         .withAccounts(Map("Artemka" -> "Artemco", "Artemco" -> "Artemco"))
 
-      val table = new AuthorsStat().authorsContributedTable(stat.dbsByYear, stat.totalImageDb, Some(monumentDb),
-        listAuthors = false)
+      val table = new AuthorsStat().authorsContributedTable(
+        stat.dbsByYear,
+        stat.totalImageDb,
+        Some(monumentDb),
+        listAuthors = false
+      )
 
       table.data === Seq(Seq("Вінницька область", "1", "1"), Seq("Total", "1", "1"))
     }
@@ -233,8 +264,12 @@ class AuthorsContributedSpec extends Specification {
 
       (renamed.currentYearImageDb eq renamed.dbsByYear.last) must beTrue
       Seq(renamed.currentYearImageDb, renamed.totalImageDb).map(_.authors) must contain(
-        be_===(Set("Artemco", "roma.wem", ""))).forall
-      AuthorsStat.authorsList(AuthorsStat.authorsByRegion(renamed.totalImageDb).flatMap(_._2), renamed.accounts.get) ===
+        be_===(Set("Artemco", "roma.wem", ""))
+      ).forall
+      AuthorsStat.authorsList(
+        AuthorsStat.authorsByRegion(renamed.totalImageDb).flatMap(_._2),
+        renamed.accounts.get
+      ) ===
         """# {{#target:User_talk:Artemco|}}
           |# roma.wem""".stripMargin
     }
@@ -251,9 +286,19 @@ class AuthorsContributedSpec extends Specification {
 
       val second = new UsersBot(renamed)
       Await.result(AuthorsStat.accounts(second, authors :+ "Newcomer", Some(cache)), 5.seconds) ===
-        Map("Ykvach" -> "Ykvach", "Roma.wem" -> "Roma.wem", "Artemka" -> "Artemco", "Newcomer" -> "Newcomer")
+        Map(
+          "Ykvach" -> "Ykvach",
+          "Roma.wem" -> "Roma.wem",
+          "Artemka" -> "Artemco",
+          "Newcomer" -> "Newcomer"
+        )
       second.requested.flatten.toSet === Set("Missing one", "Newcomer")
-      Files.readAllLines(cache).asScala === Seq("Artemka\tArtemco", "Newcomer", "Roma.wem", "Ykvach")
+      Files.readAllLines(cache).asScala === Seq(
+        "Artemka\tArtemco",
+        "Newcomer",
+        "Roma.wem",
+        "Ykvach"
+      )
     }
 
     "not count a file with no author as an author" in {

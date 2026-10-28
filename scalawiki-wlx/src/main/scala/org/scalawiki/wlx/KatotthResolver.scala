@@ -2,10 +2,10 @@ package org.scalawiki.wlx
 
 import org.scalawiki.wlx.dto.{AdmDivision, Country, Katotth, Region, RegionType}
 
-/** Resolves monuments (geocoded against the pre-2020 KOATUU settlement codes,
-  * see [[MonumentDB.placeByMonumentId]]) to their current-day (KATOTTH)
-  * administrative location. Shared between [[KatotthMonumentListCreator]]
-  * and the regional-details report so both use the same mapping.
+/** Resolves monuments (geocoded against the pre-2020 KOATUU settlement codes, see
+  * [[MonumentDB.placeByMonumentId]]) to their current-day (KATOTTH) administrative location. Shared
+  * between [[KatotthMonumentListCreator]] and the regional-details report so both use the same
+  * mapping.
   */
 object KatotthResolver {
 
@@ -37,17 +37,17 @@ object KatotthResolver {
 
   private def normalizeName(name: String): String = name.replace('’', '\'').toLowerCase
 
-  /** KOATUU code of the settlement currently (per KATOTTH) named `name` whose
-    * KOATUU code starts with `koatuuPrefix` - the digits of a monument id's
-    * first two segments ("12-119" -> "12119"), i.e. its oblast and KOATUU raion
-    * or city council. KOATUU is frozen, so a settlement renamed since then
-    * (Новомосковськ -> Самар, Червоноград -> Шептицький) can only be found under
-    * its new name here; its code didn't change, so this is the same place a
-    * KOATUU lookup by the old name finds. None unless exactly one settlement
-    * matches.
+  /** KOATUU code of the settlement currently (per KATOTTH) named `name` whose KOATUU code starts
+    * with `koatuuPrefix` - the digits of a monument id's first two segments ("12-119" -> "12119"),
+    * i.e. its oblast and KOATUU raion or city council. KOATUU is frozen, so a settlement renamed
+    * since then (Новомосковськ -> Самар, Червоноград -> Шептицький) can only be found under its new
+    * name here; its code didn't change, so this is the same place a KOATUU lookup by the old name
+    * finds. None unless exactly one settlement matches.
     */
   def koatuuForCurrentName(name: String, koatuuPrefix: String): Option[String] =
-    koatuuByCurrentName.getOrElse(normalizeName(name), Nil).filter(_.startsWith(koatuuPrefix)) match {
+    koatuuByCurrentName
+      .getOrElse(normalizeName(name), Nil)
+      .filter(_.startsWith(koatuuPrefix)) match {
       case Seq(single) => Some(single)
       case _           => None
     }
@@ -60,10 +60,9 @@ object KatotthResolver {
       .groupBy(_.code.take(10))
       .collect { case (prefix, Seq(single)) => prefix -> single }
 
-  /** The KATOTTH node for a code from `katotth_koatuu.csv`, or - when the
-    * bundled codifier edition no longer lists it (settlements are dropped or
-    * renumbered between editions, while the KOATUU mapping is frozen) - its
-    * nearest surviving ancestor, derived from the code's own hierarchical
+  /** The KATOTTH node for a code from `katotth_koatuu.csv`, or - when the bundled codifier edition
+    * no longer lists it (settlements are dropped or renumbered between editions, while the KOATUU
+    * mapping is frozen) - its nearest surviving ancestor, derived from the code's own hierarchical
     * digits: its hromada, else its raion.
     */
   private[wlx] def nodeForCode(code: String): Option[AdmDivision] =
@@ -98,12 +97,11 @@ object KatotthResolver {
     } else t
   }
 
-  /** Parses a monument's list-page title (e.g. `Вікіпедія:Вікі любить
-    * пам'ятки/Київська область/Білоцерківський район/Ковалівська громада`)
-    * into its oblast/raion/hromada name segments. Live monument lists are
-    * already organized this way; a page with no hromada segment (Kyiv,
-    * Sevastopol, occupied Crimea, or a raion not yet split into hromada
-    * lists) yields `hromadaStem = None`.
+  /** Parses a monument's list-page title (e.g. `Вікіпедія:Вікі любить пам'ятки/Київська
+    * область/Білоцерківський район/Ковалівська громада`) into its oblast/raion/hromada name
+    * segments. Live monument lists are already organized this way; a page with no hromada segment
+    * (Kyiv, Sevastopol, occupied Crimea, or a raion not yet split into hromada lists) yields
+    * `hromadaStem = None`.
     */
   private[wlx] def parsePage(page: String): ParsedPage = {
     val segs = page.split("/").toList.map(_.trim)
@@ -134,9 +132,12 @@ object KatotthResolver {
   // "B" (район в місті) covers Kyiv/Sevastopol's city districts, which are
   // the raion-equivalent level for cities with no hromadas of their own.
   private def matchRaion(raionStem: String, within: Seq[AdmDivision]): Seq[AdmDivision] =
-    within.flatMap(_.regions).filter(r =>
-      r.regionType.exists(rt => Set("P", "B").contains(rt.code)) && r.name.equalsIgnoreCase(raionStem)
-    )
+    within
+      .flatMap(_.regions)
+      .filter(r =>
+        r.regionType.exists(rt => Set("P", "B").contains(rt.code)) && r.name
+          .equalsIgnoreCase(raionStem)
+      )
 
   // Hromada nodes under a division, keyed by its code. `allSubregions` rebuilds
   // the whole subtree (down to every settlement) on each call, so without this
@@ -156,9 +157,8 @@ object KatotthResolver {
       .filter(_.name.equalsIgnoreCase(stem))
       .distinct
 
-  /** The regionType code of a hromada's administrative-seat settlement.
-    * KATOTTH numbers the seat's sub-code lowest (conventionally "010"), so
-    * it sorts first among the hromada's children.
+  /** The regionType code of a hromada's administrative-seat settlement. KATOTTH numbers the seat's
+    * sub-code lowest (conventionally "010"), so it sorts first among the hromada's children.
     */
   private def seatType(hromada: AdmDivision): Option[String] =
     hromada.regions.headOption.flatMap(_.regionType).map(_.code)
@@ -166,16 +166,20 @@ object KatotthResolver {
   private lazy val seatAdjectiveByType: Map[String, String] =
     seatTypeAdjectives.toSeq.flatMap { case (adj, types) => types.map(_ -> adj) }.toMap
 
-  /** A hromada's row label: its plain `fullName` ("Ковалівська громада"),
-    * or - when another hromada in the same raion shares its name - the
-    * seat-type-qualified form the on-wiki list pages use for exactly that
-    * case ("Миколаївська селищна громада" / "Миколаївська сільська
-    * громада"), so the two rows can be told apart.
+  /** A hromada's row label: its plain `fullName` ("Ковалівська громада"), or - when another hromada
+    * in the same raion shares its name - the seat-type-qualified form the on-wiki list pages use
+    * for exactly that case ("Миколаївська селищна громада" / "Миколаївська сільська громада"), so
+    * the two rows can be told apart.
     */
   def hromadaDisplayName(hromada: AdmDivision): String = {
-    val collides = hromada.parent().exists(_.regions.exists(other =>
-      other.code != hromada.code && other.regionType.exists(_.code == "H") && other.name.equalsIgnoreCase(hromada.name)
-    ))
+    val collides = hromada
+      .parent()
+      .exists(
+        _.regions.exists(other =>
+          other.code != hromada.code && other.regionType.exists(_.code == "H") && other.name
+            .equalsIgnoreCase(hromada.name)
+        )
+      )
     val adjective = if (collides) seatType(hromada).flatMap(seatAdjectiveByType.get) else None
     adjective.fold(hromada.fullName)(adj => s"${hromada.name} $adj$hromadaSuffix")
   }
@@ -213,16 +217,14 @@ object KatotthResolver {
       parent = () => Some(raion)
     )
 
-  /** Resolves a monument's location from its own list-page title: a hromada
-    * when the page names one, otherwise the raion (or, for Kyiv/Sevastopol,
-    * the city district) itself - which is the most specific level available
-    * for areas with no hromada level (Kyiv, Sevastopol, occupied Crimea, or
-    * a raion not yet split into hromada lists) rather than leaving them
-    * unresolved (`resolveDetailed` may still refine such a raion to a
-    * hromada via the numeric mapping). Scoped to at most the parsed oblast (never country-wide):
-    * an unscoped, purely name-based match anywhere in the country is more
-    * often a coincidental same-named region in an unrelated oblast than the
-    * intended one.
+  /** Resolves a monument's location from its own list-page title: a hromada when the page names
+    * one, otherwise the raion (or, for Kyiv/Sevastopol, the city district) itself - which is the
+    * most specific level available for areas with no hromada level (Kyiv, Sevastopol, occupied
+    * Crimea, or a raion not yet split into hromada lists) rather than leaving them unresolved
+    * (`resolveDetailed` may still refine such a raion to a hromada via the numeric mapping). Scoped
+    * to at most the parsed oblast (never country-wide): an unscoped, purely name-based match
+    * anywhere in the country is more often a coincidental same-named region in an unrelated oblast
+    * than the intended one.
     */
   def resolveFromPage(page: String): Option[AdmDivision] =
     if (page == exclusionZonePage) exclusionZone
@@ -234,12 +236,15 @@ object KatotthResolver {
         parsed.hromadaStem match {
           case Some(stem) =>
             val raionScoped =
-              parsed.raionStem.map(matchRaion(_, oblasts)).map(hromadaCandidates(stem, _)).getOrElse(Nil)
+              parsed.raionStem
+                .map(matchRaion(_, oblasts))
+                .map(hromadaCandidates(stem, _))
+                .getOrElse(Nil)
             val scoped = if (raionScoped.nonEmpty) raionScoped else hromadaCandidates(stem, oblasts)
             scoped match {
               case Seq(single) => Some(single)
-              case Seq()        => None
-              case many         => disambiguateBySeatType(many, parsed.hromadaAdjective)
+              case Seq()       => None
+              case many        => disambiguateBySeatType(many, parsed.hromadaAdjective)
             }
           case None =>
             parsed.raionStem.flatMap(matchRaion(_, oblasts) match {
@@ -249,31 +254,25 @@ object KatotthResolver {
         }
     }
 
-  /** A monument's resolved location, paired with the page that produced it.
-    * A small number of WLM ids are duplicated by data-entry error across two
-    * different monument list pages (e.g. the same id appearing once each in
-    * two different Sevastopol district lists); when that happens, only one
-    * of the two can occupy that id's slot in the resulting map, since ids
-    * are otherwise expected to be unique. Carrying `page` alongside the
-    * resolved division - both derived from the same winning `Monument`, in
-    * the same pass - keeps them consistent with each other, rather than
-    * looking the page up separately afterwards (e.g. via
-    * `MonumentDB.byId`, which resolves such a duplicate independently and
-    * can therefore disagree about which of the two monuments "wins").
+  /** A monument's resolved location, paired with the page that produced it. A small number of WLM
+    * ids are duplicated by data-entry error across two different monument list pages (e.g. the same
+    * id appearing once each in two different Sevastopol district lists); when that happens, only
+    * one of the two can occupy that id's slot in the resulting map, since ids are otherwise
+    * expected to be unique. Carrying `page` alongside the resolved division - both derived from the
+    * same winning `Monument`, in the same pass - keeps them consistent with each other, rather than
+    * looking the page up separately afterwards (e.g. via `MonumentDB.byId`, which resolves such a
+    * duplicate independently and can therefore disagree about which of the two monuments "wins").
     */
   case class Resolution(admDivision: AdmDivision, page: String)
 
-  /** Monument id -> current-day KATOTTH location, with the page that
-    * produced it. Resolves primarily from each monument's own list-page
-    * title (already hromada-organized on-wiki for current lists), using the
-    * numeric KOATUU->KATOTTH mapping (`katotthFor`):
-    *  - instead, when the page doesn't resolve at all (no recognizable
-    *    segments, an unmatched name, or a same-raion name collision that
-    *    seat type can't settle);
-    *  - to refine it, when the page resolves only to a raion/city district
-    *    (no hromada segment) and the mapping places the monument somewhere
-    *    inside that same raion - a mapping result elsewhere is ignored, the
-    *    page's raion being the more authoritative signal.
+  /** Monument id -> current-day KATOTTH location, with the page that produced it. Resolves
+    * primarily from each monument's own list-page title (already hromada-organized on-wiki for
+    * current lists), using the numeric KOATUU->KATOTTH mapping (`katotthFor`):
+    *   - instead, when the page doesn't resolve at all (no recognizable segments, an unmatched
+    *     name, or a same-raion name collision that seat type can't settle);
+    *   - to refine it, when the page resolves only to a raion/city district (no hromada segment)
+    *     and the mapping places the monument somewhere inside that same raion - a mapping result
+    *     elsewhere is ignored, the page's raion being the more authoritative signal.
     * Monuments unresolved by both are absent from the map.
     */
   def resolveDetailed(monumentDb: MonumentDB): Map[String, Resolution] = {
@@ -298,15 +297,15 @@ object KatotthResolver {
   private def isRaionLevel(node: AdmDivision): Boolean =
     node.regionType.exists(rt => Set("P", "B").contains(rt.code))
 
-  /** Monument id -> current-day KATOTTH location. See `resolveDetailed` for
-    * the resolution rules; this is that result with the page dropped.
+  /** Monument id -> current-day KATOTTH location. See `resolveDetailed` for the resolution rules;
+    * this is that result with the page dropped.
     */
   def resolve(monumentDb: MonumentDB): Map[String, AdmDivision] =
     resolveDetailed(monumentDb).view.mapValues(_.admDivision).toMap
 
-  /** Nearest ancestor of `node` (or `node` itself) that is a raion or a
-    * city district ("B" - район в місті, for cities with special status
-    * like Kyiv/Sevastopol, which have no hromadas of their own).
+  /** Nearest ancestor of `node` (or `node` itself) that is a raion or a city district ("B" - район
+    * в місті, for cities with special status like Kyiv/Sevastopol, which have no hromadas of their
+    * own).
     */
   def raionAncestor(node: AdmDivision): Option[AdmDivision] =
     if (node.regionType.exists(rt => Set("P", "B").contains(rt.code))) Some(node)

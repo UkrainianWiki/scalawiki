@@ -1,8 +1,8 @@
 package org.scalawiki.bots.stat
 
 class UserStat(revisionStats: Seq[RevisionStat]) {
-  val users: Set[String] = revisionStats.foldLeft(Set.empty[String]) {
-    (users, stats) => users ++ stats.users
+  val users: Set[String] = revisionStats.foldLeft(Set.empty[String]) { (users, stats) =>
+    users ++ stats.users
   }
 
   val byUser: Map[String, Seq[RevisionStat]] = users.map { user =>

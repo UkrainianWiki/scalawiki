@@ -192,14 +192,11 @@ class XmlParser(
         while (parser.hasNext) {
           val event = parser.next()
           event match {
-            case XMLStreamConstants.START_ELEMENT
-                if parser.getLocalName == name =>
+            case XMLStreamConstants.START_ELEMENT if parser.getLocalName == name =>
               return true
-            case XMLStreamConstants.START_ELEMENT
-                if parser.getLocalName == next =>
+            case XMLStreamConstants.START_ELEMENT if parser.getLocalName == next =>
               return false
-            case XMLStreamConstants.END_ELEMENT
-                if parser.getLocalName == parent =>
+            case XMLStreamConstants.END_ELEMENT if parser.getLocalName == parent =>
               return false
             case _ =>
           }
@@ -209,9 +206,7 @@ class XmlParser(
   }
 
   private def findElementEnd(name: String) = {
-    if (
-      parser.getEventType != XMLStreamConstants.END_ELEMENT || parser.getLocalName != name
-    )
+    if (parser.getEventType != XMLStreamConstants.END_ELEMENT || parser.getLocalName != name)
       while (
         parser
           .next() != XMLStreamConstants.END_ELEMENT || parser.getLocalName != name

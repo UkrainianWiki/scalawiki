@@ -11,43 +11,45 @@ import scala.jdk.CollectionConverters._
 import scala.util.Failure
 import scala.util.control.NonFatal
 
-/** Process-wide gate and registry for "outbound wiki write" operations (page
-  * edits, file uploads).
+/** Process-wide gate and registry for "outbound wiki write" operations (page edits, file uploads).
   *
-  * The WLX statistics engine fans out dozens of `bot.page(...).edit(...)` calls
-  * whose `Future` results are simply discarded by their callers ("fire and
-  * forget"). Three things then go wrong silently:
-  *   - all the edits are launched at once; with only two connections to the host
-  *     and Pekko's default `max-open-requests = 32`, the surplus requests fail
-  *     immediately with `BufferOverflowException` and those reports never
-  *     publish;
+  * The WLX statistics engine fans out dozens of `bot.page(...).edit(...)` calls whose `Future`
+  * results are simply discarded by their callers ("fire and forget"). Three things then go wrong
+  * silently:
+  *   - all the edits are launched at once; with only two connections to the host and Pekko's
+  *     default `max-open-requests = 32`, the surplus requests fail immediately with
+  *     `BufferOverflowException` and those reports never publish;
   *   - a failed edit is never observed, so nothing says a report didn't publish;
-  *   - `main` has no idea when the writes are actually finished, so the process
-  *     either exits too early (killing the in-flight edits) or never exits.
+  *   - `main` has no idea when the writes are actually finished, so the process either exits too
+  *     early (killing the in-flight edits) or never exits.
   *
-  * Once [[enable]] has been called, [[submit]] runs each write through a small
-  * concurrency gate, logs any failure together with its throwable, and
-  * [[awaitQuiescence]] blocks until the queue has drained. Disabled by default,
-  * so library and test users keep the old unthrottled fire-and-forget behaviour.
+  * Once [[enable]] has been called, [[submit]] runs each write through a small concurrency gate,
+  * logs any failure together with its throwable, and [[awaitQuiescence]] blocks until the queue has
+  * drained. Disabled by default, so library and test users keep the old unthrottled fire-and-forget
+  * behaviour.
   */
 object WriteWatcher {
 
-  /** Max wiki writes in flight at once while enabled. Kept well under Pekko's
-    * `max-open-requests` (32) so read requests still get through, and above the
-    * 2-connection pool so it stays saturated. Override with
-    * `-Dscalawiki.write.maxConcurrent=N`. */
+  /** Max wiki writes in flight at once while enabled. Kept well under Pekko's `max-open-requests`
+    * (32) so read requests still get through, and above the 2-connection pool so it stays
+    * saturated. Override with `-Dscalawiki.write.maxConcurrent=N`.
+    */
   private val maxConcurrent: Int =
-    sys.props.get("scalawiki.write.maxConcurrent").flatMap(s => scala.util.Try(s.toInt).toOption).filter(_ > 0).getOrElse(4)
+    sys.props
+      .get("scalawiki.write.maxConcurrent")
+      .flatMap(s => scala.util.Try(s.toInt).toOption)
+      .filter(_ > 0)
+      .getOrElse(4)
 
   @volatile private var enabled = false
   @volatile private var logger: Option[LoggingAdapter] = None
 
   private val queue = new ConcurrentLinkedQueue[() => Unit]()
 
-  /** Number of writes actually in flight (a queued write is not counted until
-    * [[drain]] starts it). Guarded by [[lock]]: the queue `poll` that hands out a
-    * slot and the decrement when a write finishes both happen while holding it,
-    * so a write can never sit in the queue with a slot free. */
+  /** Number of writes actually in flight (a queued write is not counted until [[drain]] starts it).
+    * Guarded by [[lock]]: the queue `poll` that hands out a slot and the decrement when a write
+    * finishes both happen while holding it, so a write can never sit in the queue with a slot free.
+    */
   private val lock = new Object
   private var running = 0
 
@@ -56,8 +58,9 @@ object WriteWatcher {
   private val completed = new AtomicLong(0L)
   private val failures = new ConcurrentHashMap[Long, (String, Throwable)]()
 
-  /** Start gating and tracking wiki writes. `log`, if given, receives failure
-    * and summary messages; otherwise they go to stderr. */
+  /** Start gating and tracking wiki writes. `log`, if given, receives failure and summary messages;
+    * otherwise they go to stderr.
+    */
   def enable(log: LoggingAdapter = null): Unit = {
     enabled = true
     logger = Option(log)
@@ -65,8 +68,9 @@ object WriteWatcher {
 
   def isEnabled: Boolean = enabled
 
-  /** Disable tracking and forget all recorded state (drops anything queued).
-    * Only useful for tests, to undo an [[enable]]. */
+  /** Disable tracking and forget all recorded state (drops anything queued). Only useful for tests,
+    * to undo an [[enable]].
+    */
   def reset(): Unit = {
     enabled = false
     logger = None
@@ -80,16 +84,14 @@ object WriteWatcher {
 
   /** Run `op` as a tracked wiki write described by `desc`.
     *
-    * When enabled the call is queued and only started once fewer than
-    * [[maxConcurrent]] writes are in flight; the returned future still completes
-    * with `op`'s result (or failure). When disabled `op` runs immediately, so
-    * behaviour is unchanged for library/test callers.
+    * When enabled the call is queued and only started once fewer than [[maxConcurrent]] writes are
+    * in flight; the returned future still completes with `op`'s result (or failure). When disabled
+    * `op` runs immediately, so behaviour is unchanged for library/test callers.
     *
-    * `benign` classifies a failure the caller expects and handles itself (an
-    * edit conflict that [[org.scalawiki.edit.PageUpdater]] resolves by re-reading
-    * and retrying, say). Such a failure still propagates through the returned
-    * future, but it is not counted or logged as a dropped write, so a run where
-    * every page ultimately published is not reported as `INCOMPLETE`.
+    * `benign` classifies a failure the caller expects and handles itself (an edit conflict that
+    * [[org.scalawiki.edit.PageUpdater]] resolves by re-reading and retrying, say). Such a failure
+    * still propagates through the returned future, but it is not counted or logged as a dropped
+    * write, so a run where every page ultimately published is not reported as `INCOMPLETE`.
     */
   def submit[T](
       desc: => String,
@@ -111,8 +113,8 @@ object WriteWatcher {
     promise.future
   }
 
-  /** Back-compat helper for an already-started future. Prefer [[submit]], which
-    * also throttles. */
+  /** Back-compat helper for an already-started future. Prefer [[submit]], which also throttles.
+    */
   def register[T](
       desc: => String
   )(future: Future[T])(implicit ec: ExecutionContext): Future[T] =
@@ -120,15 +122,15 @@ object WriteWatcher {
 
   /** Start queued writes until [[maxConcurrent]] are in flight.
     *
-    * The `poll` that takes a write off the queue and the `running` bump that
-    * reserves its slot happen together under [[lock]]; every completion likewise
-    * decrements `running` under `lock` and then calls `drain` again. So a write
-    * enqueued concurrently with a `drain` that finds every slot busy is always
-    * picked up by the next completing write — it can't be stranded in the queue
-    * while a slot sits free (the race in the previous lock-free version, which
-    * could hang the last write until `awaitQuiescence` timed out).
+    * The `poll` that takes a write off the queue and the `running` bump that reserves its slot
+    * happen together under [[lock]]; every completion likewise decrements `running` under `lock`
+    * and then calls `drain` again. So a write enqueued concurrently with a `drain` that finds every
+    * slot busy is always picked up by the next completing write — it can't be stranded in the queue
+    * while a slot sits free (the race in the previous lock-free version, which could hang the last
+    * write until `awaitQuiescence` timed out).
     *
-    * Each write is started (`op()` invoked) outside the lock. */
+    * Each write is started (`op()` invoked) outside the lock.
+    */
   private def drain()(implicit ec: ExecutionContext): Unit = {
     var next: () => Unit = null
     do {
@@ -183,10 +185,10 @@ object WriteWatcher {
     }
   }
 
-  /** (description, throwable) for every write that has failed so far, excluding
-    * failures the caller flagged as `benign` in [[submit]] (edit conflicts it
-    * retries itself). A non-benign failure the caller happens to retry by hand
-    * still shows up here for its failed attempt. */
+  /** (description, throwable) for every write that has failed so far, excluding failures the caller
+    * flagged as `benign` in [[submit]] (edit conflicts it retries itself). A non-benign failure the
+    * caller happens to retry by hand still shows up here for its failed attempt.
+    */
   def recordedFailures: Seq[(String, Throwable)] =
     failures.values().asScala.toVector
 
@@ -194,16 +196,17 @@ object WriteWatcher {
 
   def completedCount: Long = completed.get()
 
-  /** Total writes ever handed to [[submit]] (queued, running, and finished).
-    * Grows if writes are spawned from earlier writes' completion callbacks. */
+  /** Total writes ever handed to [[submit]] (queued, running, and finished). Grows if writes are
+    * spawned from earlier writes' completion callbacks.
+    */
   def submittedCount: Long = started.get()
 
-  /** Block until the write queue has been empty and idle for `settle`, or until
-    * `hardLimit` elapses, whichever comes first. Writes spawned from the
-    * completion callback of an earlier write are still picked up as long as they
-    * start within the `settle` window.
+  /** Block until the write queue has been empty and idle for `settle`, or until `hardLimit`
+    * elapses, whichever comes first. Writes spawned from the completion callback of an earlier
+    * write are still picked up as long as they start within the `settle` window.
     *
-    * @return the failures observed while waiting.
+    * @return
+    *   the failures observed while waiting.
     */
   def awaitQuiescence(
       settle: FiniteDuration = 3.seconds,

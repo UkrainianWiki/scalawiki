@@ -19,16 +19,14 @@ class MonumentDbSpec extends Specification {
     }
   }
 
-  def specialNominationMonuments(prefix: String) = Ukraine.regionIds.flatMap {
-    regionId =>
-      (1 to regionId.toInt).map { i =>
-        Monument(
-          id = prefix + "-" + regionId + "1-" + f"$i%04d",
-          name =
-            "Special Nomination Monument in " + Ukraine.regionName(regionId),
-          listConfig = Some(ListConfig.WlmUa)
-        )
-      }
+  def specialNominationMonuments(prefix: String) = Ukraine.regionIds.flatMap { regionId =>
+    (1 to regionId.toInt).map { i =>
+      Monument(
+        id = prefix + "-" + regionId + "1-" + f"$i%04d",
+        name = "Special Nomination Monument in " + Ukraine.regionName(regionId),
+        listConfig = Some(ListConfig.WlmUa)
+      )
+    }
   }
 
   "monument db" should {

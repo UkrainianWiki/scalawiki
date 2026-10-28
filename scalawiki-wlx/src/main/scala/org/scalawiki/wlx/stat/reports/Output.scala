@@ -464,7 +464,9 @@ object Output {
       .edit(text, Some("updating"))
   }
 
-  def regionalStat(stat: ContestStat, accountsCache: Option[Path] = None)(implicit ec: ExecutionContext): Future[Unit] = {
+  def regionalStat(stat: ContestStat, accountsCache: Option[Path] = None)(implicit
+      ec: ExecutionContext
+  ): Future[Unit] = {
     val bot = MwBot.fromHost(MwBot.commons)
     // No local try/catch: the caller (ReporterRegistry.step) isolates and
     // reports a failure here so it is counted, not just logged and forgotten.
@@ -474,9 +476,9 @@ object Output {
 
     // the table counts authors by account, as the author lists it links to name them; the run has put the authors
     // under their accounts unless it could not look them up
-    val withAccounts = stat.accounts.fold(AuthorsStat.accounts(bot, stat.authors, accountsCache).map(stat.withAccounts))(
-      _ => Future.successful(stat)
-    )
+    val withAccounts = stat.accounts.fold(
+      AuthorsStat.accounts(bot, stat.authors, accountsCache).map(stat.withAccounts)
+    )(_ => Future.successful(stat))
     withAccounts.flatMap { stat =>
       val accounts = stat.accounts.getOrElse(Map.empty)
       val authorsStat = new AuthorsStat()

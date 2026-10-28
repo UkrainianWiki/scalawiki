@@ -133,33 +133,34 @@ class MonumentDB(
   lazy val placeByMonumentId: Map[String, String] = {
     // byIdAndName walks the region's whole place tree per call; many monuments
     // share a (region, city, type), so look each distinct combination up once.
-    val candidatesCache = scala.collection.mutable.HashMap.empty[(String, String, Option[String]), Seq[AdmDivision]]
+    val candidatesCache =
+      scala.collection.mutable.HashMap.empty[(String, String, Option[String]), Seq[AdmDivision]]
     (for (
-    id <- ids;
-    monument <- byId(id)
-  )
-    yield {
-      val regionId = id.split("-").take(2).mkString("-")
-      val city = monument.city.getOrElse("")
-      val candidates = candidatesCache.getOrElseUpdate(
-        (regionId, city, monument.cityType),
-        country.byIdAndName(regionId, city, monument.cityType)
-      )
-      if (candidates.size == 1) {
-        Some(id -> candidates.head.code)
-      } else {
-        PerPlaceStat.fallbackMap
-          .get(id)
-          .orElse(if (candidates.isEmpty) placeByCurrentName(regionId, city) else None)
-          .map(id -> _)
-      }
-    }).flatten.toMap
+      id <- ids;
+      monument <- byId(id)
+    )
+      yield {
+        val regionId = id.split("-").take(2).mkString("-")
+        val city = monument.city.getOrElse("")
+        val candidates = candidatesCache.getOrElseUpdate(
+          (regionId, city, monument.cityType),
+          country.byIdAndName(regionId, city, monument.cityType)
+        )
+        if (candidates.size == 1) {
+          Some(id -> candidates.head.code)
+        } else {
+          PerPlaceStat.fallbackMap
+            .get(id)
+            .orElse(if (candidates.isEmpty) placeByCurrentName(regionId, city) else None)
+            .map(id -> _)
+        }
+      }).flatten.toMap
   }
 
-  /** The KOATUU place of a settlement listed under a name KOATUU doesn't know -
-    * typically one renamed after KOATUU was frozen - found by its current
-    * KATOTTH name (see `KatotthResolver.koatuuForCurrentName`) and mapped back
-    * to the same KOATUU node a lookup by its old name returns.
+  /** The KOATUU place of a settlement listed under a name KOATUU doesn't know - typically one
+    * renamed after KOATUU was frozen - found by its current KATOTTH name (see
+    * `KatotthResolver.koatuuForCurrentName`) and mapped back to the same KOATUU node a lookup by
+    * its old name returns.
     */
   private def placeByCurrentName(regionId: String, city: String): Option[String] =
     if (country.code != "UA") None
@@ -220,8 +221,9 @@ object MonumentDB {
       new MonumentDB(contest, allMonuments.toSeq)
     }
 
-  /** Blocking bridge for standalone CLI entry points and tests. The stats
-    * pipeline uses [[getMonumentDb]] directly. */
+  /** Blocking bridge for standalone CLI entry points and tests. The stats pipeline uses
+    * [[getMonumentDb]] directly.
+    */
   def getMonumentDbBlocking(
       contest: Contest,
       monumentQuery: MonumentQuery,

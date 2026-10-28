@@ -14,8 +14,7 @@ class Grouping[T, V](val name: String, groupFunc: T => V)
   override def apply(t: Iterable[T]): Map[V, Iterable[T]] = t.groupBy(groupFunc)
 }
 
-class Mapping[-T, +V](val name: String, mapFunc: T => V)
-    extends Function[T, V] {
+class Mapping[-T, +V](val name: String, mapFunc: T => V) extends Function[T, V] {
 
   override def apply(t: T): V = mapFunc(t)
 }
@@ -28,8 +27,7 @@ class PercentageAggregation[T](
       t => (valueAggregation(t) * 100.0 / t.size).round
     )
 
-class StringColumnOrdering(column: Int, reverse: Boolean = false)
-    extends Ordering[Seq[Any]] {
+class StringColumnOrdering(column: Int, reverse: Boolean = false) extends Ordering[Seq[Any]] {
   override def compare(x: Seq[Any], y: Seq[Any]): Int =
     x(column).toString
       .compareTo(
@@ -37,8 +35,7 @@ class StringColumnOrdering(column: Int, reverse: Boolean = false)
       ) * (if (reverse) -1 else 1)
 }
 
-class LongColumnOrdering(column: Int, reverse: Boolean = false)
-    extends Ordering[Seq[Any]] {
+class LongColumnOrdering(column: Int, reverse: Boolean = false) extends Ordering[Seq[Any]] {
 
   override def compare(x: Seq[Any], y: Seq[Any]): Int =
     x(column).toString.toLong

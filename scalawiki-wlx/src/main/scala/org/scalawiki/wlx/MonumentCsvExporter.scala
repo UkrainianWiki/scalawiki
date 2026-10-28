@@ -17,9 +17,9 @@ object MonumentCsvExporter {
     s"$campaign-${now.format(fmt)}.csv"
   }
 
-  /** Fetch every monument list for `campaign` from the wiki and write the rows to
-    * `outFile` (or [[defaultFilename]] when it is empty / `None`), applying the
-    * `monuments_config/ua_uk.json` mapping. Writes nothing for an empty list.
+  /** Fetch every monument list for `campaign` from the wiki and write the rows to `outFile` (or
+    * [[defaultFilename]] when it is empty / `None`), applying the `monuments_config/ua_uk.json`
+    * mapping. Writes nothing for an empty list.
     */
   def exportFromWiki(
       monumentQuery: MonumentQuery,
@@ -36,13 +36,17 @@ object MonumentCsvExporter {
 
   /** Export monument rows to a CSV file.
     *
-    * - Applies UaUkJsonMapping.applyMapping to each row.
-    * - Computes header via UaUkJsonMapping.headerColumns (sql_data keys first, then alphabetical).
-    * - Writes nothing if rows is empty.
+    *   - Applies UaUkJsonMapping.applyMapping to each row.
+    *   - Computes header via UaUkJsonMapping.headerColumns (sql_data keys first, then
+    *     alphabetical).
+    *   - Writes nothing if rows is empty.
     *
-    * @param rows       raw monument parameter maps (as returned by parseToMaps)
-    * @param mapping    loaded UaUkMapping (from UaUkJsonMapping.load)
-    * @param outputPath path to the output CSV file
+    * @param rows
+    *   raw monument parameter maps (as returned by parseToMaps)
+    * @param mapping
+    *   loaded UaUkMapping (from UaUkJsonMapping.load)
+    * @param outputPath
+    *   path to the output CSV file
     */
   def export(
       rows: Iterable[Map[String, String]],

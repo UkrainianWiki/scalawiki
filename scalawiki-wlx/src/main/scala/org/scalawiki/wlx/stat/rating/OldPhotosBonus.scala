@@ -5,18 +5,17 @@ import org.scalawiki.wlx.stat.ContestStat
 
 import java.time.{LocalDate, ZoneOffset, ZonedDateTime}
 
-/** WLM UA 2026 rule 7.3.4: a monument photo gets an extra `bonus` points if every
-  * photo of that monument already known before the contest started is dated earlier
-  * than `beforeDate` (i.e. the monument has only "old" pictures).
+/** WLM UA 2026 rule 7.3.4: a monument photo gets an extra `bonus` points if every photo of that
+  * monument already known before the contest started is dated earlier than `beforeDate` (i.e. the
+  * monument has only "old" pictures).
   *
-  * A photo's date is taken from EXIF metadata (DateTimeOriginal) when available,
-  * otherwise from the upload/revision timestamp. If any known photo has no date at
-  * all we cannot assert that "all photos are old", so no bonus is given.
+  * A photo's date is taken from EXIF metadata (DateTimeOriginal) when available, otherwise from the
+  * upload/revision timestamp. If any known photo has no date at all we cannot assert that "all
+  * photos are old", so no bonus is given.
   *
-  * "Already known" only covers prior-year contest uploads (see
-  * [[Rater.oldImagesByMonumentId]]); photos on Commons or Wikipedia that were
-  * never entered into the contest are not considered, so a monument that was
-  * photographed outside the contest after `beforeDate` may still get the bonus.
+  * "Already known" only covers prior-year contest uploads (see [[Rater.oldImagesByMonumentId]]);
+  * photos on Commons or Wikipedia that were never entered into the contest are not considered, so a
+  * monument that was photographed outside the contest after `beforeDate` may still get the bonus.
   */
 case class OldPhotosBonus(
     stat: ContestStat,

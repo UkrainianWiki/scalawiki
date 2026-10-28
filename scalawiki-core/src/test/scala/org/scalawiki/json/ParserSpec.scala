@@ -153,7 +153,8 @@ class ParserSpec extends Specification {
         """{"batchcomplete": "", "query": {"pages": {
           "99999999999": {"pageid": 99999999999, "missing": ""},
           "136018389": {"pageid": 136018389, "ns": 6, "title": "File:X.jpg"}}}}"""
-      val pages = new Parser(Action(Query(PageIdsParam(Seq(99999999999L, 136018389L))))).parse(json).get
+      val pages =
+        new Parser(Action(Query(PageIdsParam(Seq(99999999999L, 136018389L))))).parse(json).get
       pages.flatMap(_.id) === Seq(136018389L)
     }
   }

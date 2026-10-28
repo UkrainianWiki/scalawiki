@@ -23,8 +23,7 @@ object Stats {
 
 }
 
-object MonumentsByRegion
-    extends Grouping[Monument, String]("Region KOATUU code", _.regionId)
+object MonumentsByRegion extends Grouping[Monument, String]("Region KOATUU code", _.regionId)
 
 object MonumentsWithArticles
     extends Aggregation[Monument, Int](

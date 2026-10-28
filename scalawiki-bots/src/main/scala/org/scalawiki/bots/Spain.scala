@@ -5,12 +5,7 @@ import java.util.TimeZone
 
 import org.scalawiki.MwBot
 import org.scalawiki.dto.cmd.Action
-import org.scalawiki.dto.cmd.query.list.{
-  CategoryMembers,
-  CmLimit,
-  CmNamespace,
-  CmTitle
-}
+import org.scalawiki.dto.cmd.query.list.{CategoryMembers, CmLimit, CmNamespace, CmTitle}
 import org.scalawiki.dto.cmd.query.prop._
 import org.scalawiki.dto.cmd.query.{Generator, PageIdsParam, Query}
 import org.scalawiki.dto.{Namespace, Page}

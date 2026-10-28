@@ -19,8 +19,8 @@ trait Rater {
 
   def explain(monumentId: String, author: String): String
 
-  /** Short column header for this rater's contribution in the rating breakdown
-    * table (see [[org.scalawiki.wlx.stat.reports.Output.galleryByRegionAndId]]).
+  /** Short column header for this rater's contribution in the rating breakdown table (see
+    * [[org.scalawiki.wlx.stat.reports.Output.galleryByRegionAndId]]).
     */
   def label: String = getClass.getSimpleName
 
@@ -44,14 +44,13 @@ trait Rater {
 
   lazy val oldMonumentIds: Set[String] = oldImages.flatMap(_.monumentId).toSet
 
-  /** `oldImages` grouped by the monument they depict. Images without a monument
-    * id are dropped. Computed once and shared by the per-monument bonus raters.
+  /** `oldImages` grouped by the monument they depict. Images without a monument id are dropped.
+    * Computed once and shared by the per-monument bonus raters.
     *
-    * NB: `oldImages` only holds images that carry the contest monument template
-    * (prior-year contest uploads on Commons / uk.wikipedia). Photos of a monument
-    * that exist on Commons or Wikipedia but were never entered into the contest
-    * are invisible here — an approximation of the регламент's "усі наявні на
-    * Вікісховищі чи у Вікіпедії фотографії".
+    * NB: `oldImages` only holds images that carry the contest monument template (prior-year contest
+    * uploads on Commons / uk.wikipedia). Photos of a monument that exist on Commons or Wikipedia
+    * but were never entered into the contest are invisible here — an approximation of the
+    * регламент's "усі наявні на Вікісховищі чи у Вікіпедії фотографії".
     */
   lazy val oldImagesByMonumentId: Map[String, Seq[Image]] =
     oldImages.toSeq
@@ -60,15 +59,13 @@ trait Rater {
 
   def withRating: Boolean = true
 
-  /** Whether this rater's points apply to an ordinary (exterior) photo of the
-    * monument.
+  /** Whether this rater's points apply to an ordinary (exterior) photo of the monument.
     *
-    * `false` for bonuses that only a particular kind of upload can earn —
-    * currently the interior-photo bonus (Регламент 2026, п. 7.3.5), which a
-    * regular photo never gets and which is meaningless for a monument that
-    * physically has no interior. Such raters are left out of the single
-    * per-monument figure [[org.scalawiki.wlx.RatingListFiller]] writes into the
-    * `бали` list field, since that figure is a hint for a generic upload.
+    * `false` for bonuses that only a particular kind of upload can earn — currently the
+    * interior-photo bonus (Регламент 2026, п. 7.3.5), which a regular photo never gets and which is
+    * meaningless for a monument that physically has no interior. Such raters are left out of the
+    * single per-monument figure [[org.scalawiki.wlx.RatingListFiller]] writes into the `бали` list
+    * field, since that figure is a hint for a generic upload.
     */
   def appliesToRegularPhoto: Boolean = true
 

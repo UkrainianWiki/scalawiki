@@ -1,11 +1,6 @@
 package org.scalawiki.dto.cmd
 
-import org.scalawiki.dto.cmd.query.list.{
-  CmTitle,
-  CategoryMembers,
-  EiTitle,
-  EmbeddedIn
-}
+import org.scalawiki.dto.cmd.query.list.{CmTitle, CategoryMembers, EiTitle, EmbeddedIn}
 import org.scalawiki.dto.cmd.query.{Generator, Query}
 import org.scalawiki.dto.cmd.query.prop._
 import org.specs2.matcher.ThrownMessages

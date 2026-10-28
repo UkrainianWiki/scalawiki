@@ -7,10 +7,10 @@ import org.scalawiki.wlx.dto.Contest
 
 import scala.concurrent.Future
 
-/** The contest files deleted on Commons after the statistics cached them, as the CSV
-  * cache's syncs found them ([[DeletedImagesCsv]]): one page,
-  * `Commons:<contest type> in <country>/Deleted images`, with a section per year of the
-  * run, newest first, and one for the other files of the contest template.
+/** The contest files deleted on Commons after the statistics cached them, as the CSV cache's syncs
+  * found them ([[DeletedImagesCsv]]): one page,
+  * `Commons:<contest type> in <country>/Deleted images`, with a section per year of the run, newest
+  * first, and one for the other files of the contest template.
   */
 object DeletedImages {
 
@@ -20,7 +20,9 @@ object DeletedImages {
   /** The page's text, from the deleted-files CSVs in `csvDir`. */
   def text(contest: Contest, years: Seq[Int], csvDir: String): String = {
     val byYear = years.sorted.reverse.map { year =>
-      year.toString -> DeletedImagesCsv.read(DeletedImagesCsv.filename(contest.campaign, year, csvDir))
+      year.toString -> DeletedImagesCsv.read(
+        DeletedImagesCsv.filename(contest.campaign, year, csvDir)
+      )
     }
     val other = "Other files with the contest template" ->
       DeletedImagesCsv.read(DeletedImagesCsv.totalFilename(contest.campaign, csvDir))
@@ -29,7 +31,9 @@ object DeletedImages {
 
     s"Files of ${contest.contestType.name} in ${contest.country.name} that were deleted from Commons after the " +
       s"statistics cached them, as the daily sync found them: $total.\n" +
-      sections.map { case (title, rows) => s"\n== $title (${rows.size}) ==\n" + table(rows) }.mkString
+      sections.map { case (title, rows) =>
+        s"\n== $title (${rows.size}) ==\n" + table(rows)
+      }.mkString
   }
 
   private def table(rows: Seq[DeletedImage]): String = {

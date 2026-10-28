@@ -44,10 +44,16 @@ class AuthorsStat(val uploadImages: Boolean = false) {
     header + table.asWiki + userImages.getOrElse("")
   }
 
-  def authorsContributedPerRegion(imageDb: ImageDB, bot: MwBot, accounts: Map[String, String]): Future[Unit] =
+  def authorsContributedPerRegion(
+      imageDb: ImageDB,
+      bot: MwBot,
+      accounts: Map[String, String]
+  ): Future[Unit] =
     Future
       .traverse(AuthorsStat.authorsByRegion(imageDb)) { case (regionName, authors) =>
-        bot.page(AuthorsStat.authorsListPage(imageDb.contest, regionName)).edit(AuthorsStat.authorsList(authors, accounts))
+        bot
+          .page(AuthorsStat.authorsListPage(imageDb.contest, regionName))
+          .edit(AuthorsStat.authorsList(authors, accounts))
       }
       .map(_ => ())
 
@@ -207,8 +213,9 @@ class AuthorsStat(val uploadImages: Boolean = false) {
 
 object AuthorsStat {
 
-  /** The page listing a region's all-time authors. It has no year in its title: Regional statistics links its
-    * all-time author count here, so writing to a per-year title left the linked page stale.
+  /** The page listing a region's all-time authors. It has no year in its title: Regional statistics
+    * links its all-time author count here, so writing to a per-year title left the linked page
+    * stale.
     */
   def authorsListPage(contest: Contest, regionName: String): String =
     s"Commons:${contest.contestType.name} in ${contest.country.name}/Автори $regionName"
@@ -217,13 +224,19 @@ object AuthorsStat {
   def authorsByRegion(imageDb: ImageDB): Seq[(String, Seq[String])] =
     imageDb.monumentDb.fold(Seq.empty[(String, Seq[String])]) { monumentDb =>
       monumentDb.regionIds.map { regionId =>
-        val authors = imageDb.authorsByRegion(regionId).toSeq.sorted.map(_.replace("Участник:", "")).filterNot(_.isBlank)
+        val authors = imageDb
+          .authorsByRegion(regionId)
+          .toSeq
+          .sorted
+          .map(_.replace("Участник:", ""))
+          .filterNot(_.isBlank)
         monumentDb.contest.country.regionName(regionId) -> authors
       }
     }
 
-  /** The authors list, a MassMessage target list of their [[accounts]]. An author with no Commons account (a Panoramio
-    * or Flickr name, a name written out) is listed as plain text: still counted, but with no talk page to message.
+  /** The authors list, a MassMessage target list of their [[accounts]]. An author with no Commons
+    * account (a Panoramio or Flickr name, a name written out) is listed as plain text: still
+    * counted, but with no talk page to message.
     */
   def authorsList(authors: Seq[String], accounts: Map[String, String]): String =
     authors
@@ -236,8 +249,11 @@ object AuthorsStat {
       }
       .mkString("\n")
 
-  /** The name an author is counted under: their current Commons account, or else the name as written. */
-  def accountOf(accounts: Map[String, String])(author: String): String = accounts.getOrElse(userName(author), author)
+  /** The name an author is counted under: their current Commons account, or else the name as
+    * written.
+    */
+  def accountOf(accounts: Map[String, String])(author: String): String =
+    accounts.getOrElse(userName(author), author)
 
   private val logger = LoggerFactory.getLogger(classOf[AuthorsStat])
 
@@ -245,11 +261,16 @@ object AuthorsStat {
   def accountsCache(config: StatConfig): Option[Path] =
     Option.when(config.csvCache)(Paths.get(config.csvCacheDir, "commons-accounts.txt"))
 
-  /** The current Commons account of each of `authors` that has one, by their [[userName]]: their own, or the one it was
-    * renamed to. Commons never deletes an account, so these are kept in `cacheFile` and not looked up again. A name with
-    * no account is looked up on every run: it may be registered since.
+  /** The current Commons account of each of `authors` that has one, by their [[userName]]: their
+    * own, or the one it was renamed to. Commons never deletes an account, so these are kept in
+    * `cacheFile` and not looked up again. A name with no account is looked up on every run: it may
+    * be registered since.
     */
-  def accounts(bot: ActionBot, authors: Seq[String], cacheFile: Option[Path] = None): Future[Map[String, String]] = {
+  def accounts(
+      bot: ActionBot,
+      authors: Seq[String],
+      cacheFile: Option[Path] = None
+  ): Future[Map[String, String]] = {
     val names = authors.map(userName).distinct
     val cached = cacheFile.fold(Map.empty[String, String])(readAccounts)
     val uncached = names.filterNot(cached.contains)
@@ -269,12 +290,17 @@ object AuthorsStat {
     if (!Files.exists(file)) Map.empty
     else
       Try {
-        Files.readAllLines(file, StandardCharsets.UTF_8).asScala.filter(_.nonEmpty).map { line =>
-          line.split('\t') match {
-            case Array(old, renamed) => old -> renamed
-            case _                   => line -> line
+        Files
+          .readAllLines(file, StandardCharsets.UTF_8)
+          .asScala
+          .filter(_.nonEmpty)
+          .map { line =>
+            line.split('\t') match {
+              case Array(old, renamed) => old -> renamed
+              case _                   => line -> line
+            }
           }
-        }.toMap
+          .toMap
       }.recover { case e =>
         logger.warn(s"[accounts] could not read $file, looking up every author: $e")
         Map.empty[String, String]
@@ -283,14 +309,18 @@ object AuthorsStat {
   private def writeAccounts(file: Path, accounts: Map[String, String]): Unit =
     Try {
       Option(file.getParent).foreach(Files.createDirectories(_))
-      val lines = accounts.toSeq.sorted.map { case (name, account) => if (name == account) name else s"$name\t$account" }
+      val lines = accounts.toSeq.sorted.map { case (name, account) =>
+        if (name == account) name else s"$name\t$account"
+      }
       val tmp = file.resolveSibling(file.getFileName.toString + ".tmp")
       Files.write(tmp, lines.asJava, StandardCharsets.UTF_8)
       Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
     }.failed.foreach(e => logger.warn(s"[accounts] could not write $file: $e"))
 
   // one request per 50 names, one at a time
-  private def inBatches[T](names: Seq[String])(lookUp: Seq[String] => Future[Map[String, T]]): Future[Map[String, T]] =
+  private def inBatches[T](
+      names: Seq[String]
+  )(lookUp: Seq[String] => Future[Map[String, T]]): Future[Map[String, T]] =
     names.grouped(50).foldLeft(Future.successful(Map.empty[String, T])) { (acc, slice) =>
       acc.flatMap(found => lookUp(slice).map(found ++ _))
     }
@@ -299,28 +329,42 @@ object AuthorsStat {
     inBatches(names) { slice =>
       bot.run(Action(Query(ListParam(Users(UsUsers(slice)))))).map { pages =>
         // a missing user comes back without an id, and so does an invalid name
-        pages.flatMap(_.lastRevisionUser).collect { case user: User if user.id.isDefined => user.login }.flatten
-          .map(name => name -> name).toMap
+        pages
+          .flatMap(_.lastRevisionUser)
+          .collect { case user: User if user.id.isDefined => user.login }
+          .flatten
+          .map(name => name -> name)
+          .toMap
       }
     }.map(_.keySet)
 
   private val talkPrefix = "User talk:"
   // the target's page name, after its namespace
-  private val redirect = "(?iu)^\\s*#(?:redirect|перенаправлення)\\s*\\[\\[\\s*:?[^:\\]|]+:([^\\]|#/]+)".r
+  private val redirect =
+    "(?iu)^\\s*#(?:redirect|перенаправлення)\\s*\\[\\[\\s*:?[^:\\]|]+:([^\\]|#/]+)".r
 
-  /** The accounts that `names` were renamed to: a renamed account's old talk page redirects to its new one. */
+  /** The accounts that `names` were renamed to: a renamed account's old talk page redirects to its
+    * new one.
+    */
   private def lookUpRenames(bot: ActionBot, names: Seq[String]): Future[Map[String, String]] =
     inBatches(names) { slice =>
-      bot.run(Action(Query(TitlesParam(slice.map(talkPrefix + _)), Prop(Revisions(RvProp(Content)))))).map { pages =>
-        pages.flatMap { page =>
-          page.revisions.headOption.flatMap(_.content).flatMap(redirect.findFirstMatchIn).map { m =>
-            page.title.stripPrefix(talkPrefix) -> userName(m.group(1))
-          }
-        }.toMap
-      }
+      bot
+        .run(
+          Action(Query(TitlesParam(slice.map(talkPrefix + _)), Prop(Revisions(RvProp(Content)))))
+        )
+        .map { pages =>
+          pages.flatMap { page =>
+            page.revisions.headOption.flatMap(_.content).flatMap(redirect.findFirstMatchIn).map {
+              m =>
+                page.title.stripPrefix(talkPrefix) -> userName(m.group(1))
+            }
+          }.toMap
+        }
     }.flatMap { renamed =>
       // the redirect may be to a page that isn't an account's
-      lookUpAccounts(bot, renamed.values.toSeq.distinct).map(existing => renamed.filter { case (_, to) => existing(to) })
+      lookUpAccounts(bot, renamed.values.toSeq.distinct).map(existing =>
+        renamed.filter { case (_, to) => existing(to) }
+      )
     }
 
   /** The name as MediaWiki stores it: spaces for underscores, the first letter capitalized. */

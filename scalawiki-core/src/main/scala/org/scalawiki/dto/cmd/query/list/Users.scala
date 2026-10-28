@@ -63,9 +63,7 @@ object UsImplicitGroups
     )
     with UsPropArg
 
-object UsRights
-    extends EnumArgument[UsPropArg]("rights", "All rights the user has")
-    with UsPropArg
+object UsRights extends EnumArgument[UsPropArg]("rights", "All rights the user has") with UsPropArg
 
 object UsEditCount
     extends EnumArgument[UsPropArg](
