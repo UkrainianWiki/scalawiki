@@ -74,13 +74,15 @@ class Parser(val action: Action) {
         val langLinks = getLangLinks(pageJson)
         val links = getLinks(pageJson)
         val categoryInfo = getCategoryInfo(pageJson)
+        val categories = getCategories(pageJson)
 
         page.copy(
           revisions = revisions,
           images = images,
           langLinks = langLinks,
           links = links,
-          categoryInfo = categoryInfo
+          categoryInfo = categoryInfo,
+          categories = categories
         )
     }
   }
@@ -178,6 +180,13 @@ class Parser(val action: Action) {
       }
       .getOrElse(Nil)
   }
+
+  /** The titles of the page's categories (prop=categories). */
+  private def getCategories(pageJson: JsObject): Seq[String] =
+    (pageJson \ "categories")
+      .asOpt[Seq[JsObject]]
+      .map(_.flatMap(c => (c \ "title").asOpt[String]))
+      .getOrElse(Nil)
 
   private def getCategoryInfo(pageJson: JsObject): Option[CategoryInfo] =
     pageJson.validate(Parser.categoryInfoReads()).getOrElse(None)

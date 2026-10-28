@@ -2,7 +2,7 @@ package org.scalawiki.json
 
 import org.scalawiki.dto.cmd.Action
 import org.scalawiki.dto.cmd.query.list.{EmbeddedIn, ListParam}
-import org.scalawiki.dto.cmd.query.prop.{LangLinks, LlLimit, Prop, Revisions}
+import org.scalawiki.dto.cmd.query.prop.{Categories, ClLimit, LangLinks, LlLimit, Prop, Revisions}
 import org.scalawiki.dto.cmd.query.{PageIdsParam, Query, TitlesParam}
 import org.scalawiki.dto.{MwException, Page}
 import org.scalawiki.util.TestUtils._
@@ -115,6 +115,37 @@ class ParserSpec extends Specification {
         "nl" -> "Artikel",
         "pt" -> "Artigo"
       )
+    }
+
+    "parse page categories" in {
+      val s =
+        """{"continue": {"clcontinue": "11|Lakes_in_Armenia", "continue": "||"},
+          | "query": {"pages": {
+          |   "11": {"pageid": 11, "ns": 6, "title": "File:Lake.jpg", "categories": [
+          |     {"ns": 14, "title": "Category:Images from Wiki Loves Earth 2026"},
+          |     {"ns": 14, "title": "Category:Images from Wiki Loves Earth 2026 in Armenia"}]},
+          |   "12": {"pageid": 12, "ns": 6, "title": "File:Desert.jpg"}}}}""".stripMargin
+
+      val action = Action(Query(Prop(Categories(ClLimit("max"))), PageIdsParam(Seq(11, 12))))
+      action.pairs.toMap === Map("action" -> "query", "prop" -> "categories", "cllimit" -> "max", "pageids" -> "11|12")
+
+      val parser = new Parser(action)
+      val pages = parser.parse(s).get
+
+      pages.map(p => p.title -> p.categories).toMap === Map(
+        "File:Lake.jpg" -> Seq(
+          "Category:Images from Wiki Loves Earth 2026",
+          "Category:Images from Wiki Loves Earth 2026 in Armenia"
+        ),
+        "File:Desert.jpg" -> Nil
+      )
+      parser.continue === Map("clcontinue" -> "11|Lakes_in_Armenia", "continue" -> "||")
+    }
+
+    "merge the categories of a page split by continue" in {
+      val first = Page(Some(11L), Some(6), "File:Lake.jpg", categories = Seq("Category:A"))
+      val next = Page(Some(11L), Some(6), "File:Lake.jpg", categories = Seq("Category:B"))
+      first.appendLists(next).categories === Seq("Category:A", "Category:B")
     }
 
     "parse mwerror" in {

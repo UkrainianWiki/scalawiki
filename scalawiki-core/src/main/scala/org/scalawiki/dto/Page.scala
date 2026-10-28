@@ -16,7 +16,8 @@ case class Page(
     langLinks: Map[String, String] = Map.empty,
     links: Seq[Page] = Seq.empty,
     categoryInfo: Option[CategoryInfo] = None,
-    invalidReason: Option[String] = None
+    invalidReason: Option[String] = None,
+    categories: Seq[String] = Seq.empty
 ) /*extends HasId[Page]*/ {
   val history = new History(revisions)
 
@@ -40,7 +41,8 @@ case class Page(
     revisions = this.revisions ++ other.revisions,
     images = this.images ++ other.images,
     langLinks = this.langLinks ++ other.langLinks,
-    links = this.links ++ other.links
+    links = this.links ++ other.links,
+    categories = this.categories ++ other.categories
   )
 
   def withoutContent: Page = copy(revisions = revisions.map(_.withoutContent))
