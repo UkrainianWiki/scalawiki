@@ -20,7 +20,7 @@ object Dependencies {
   val ScalaChartV = "0.8.0"
   val ScalaCheckV = "1.18.1"
   val ScalaCsvV = "2.0.0"
-  val ScalaParserCombinatorsV = "2.4.0"
+  val ScalaParserCombinatorsV = "2.5.0"
   val ScalaXmlV = "2.3.0"
   val ScallopV = "5.2.0"
   val ProgressBarV = "0.10.1"
