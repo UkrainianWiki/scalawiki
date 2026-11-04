@@ -36,7 +36,13 @@ wrappers at the repo root — see `RUNNING.md`.
 
 Tests use specs2 (`org.specs2.mutable.Specification`), not ScalaTest. `Test / fork := true` is set globally, and `assembly / test := {}` skips tests during assembly builds.
 
-CI (`.github/workflows/ci.yml`) runs `sbt -v +test` on JDK 17 and 21 (a matrix). `appveyor.yml` is a legacy Windows CI config (JDK 11, sbt 1.5.3); AppVeyor has not reported on a commit since April 2026 and failed before that, so treat it as dead — ci.yml (GitHub Actions) is the CI.
+Tests never use a wiki account and stay off the live wikis by default:
+- The forked test JVM gets `-Dscalawiki.anonymous=true`, so `LoginInfo.fromEnv` ignores `SCALAWIKI_LOGIN` / `SCALAWIKI_PASSWORD` (only `sbt -Dscalawiki.allowTestLogin=true` lifts that; no CI job does).
+- Specs that read live wikis at volume (`WlmUaListsSpec`: every WLM-UA 2019 monument list from uk.wikipedia) are skipped unless sbt runs with `-Dscalawiki.live=true`, e.g. `sbt -Dscalawiki.live=true "scalawiki-wlx/testOnly org.scalawiki.wlx.WlmUaListsSpec"`. A new live spec must do the same (`skipAllUnless(sys.props.get("scalawiki.live").contains("true"))`, with the bot and its data `lazy`).
+
+CI (`.github/workflows/ci.yml`) runs `sbt -v +test` on JDK 17 and 21 (a matrix), with actions pinned by commit SHA.
+
+Line endings: `.gitattributes` stores and checks out every text file with LF (`* text=auto eol=lf`), since specs compare multi-line string literals with LF output. A Windows checkout made before it (CRLF files, so `RatingListFillerSpec` / `AuthorsContributedSpec` fail) needs a re-checkout: with a clean tree, `git rm -r --cached -q . && git reset --hard`.
 
 ## Architecture
 

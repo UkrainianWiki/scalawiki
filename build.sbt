@@ -47,7 +47,7 @@ lazy val commonSettings = Seq(
     val curr = VersionNumber(sys.props("java.specification.version"))
     assert(
       CompatibleJavaVersion(curr, required),
-      s"Java $required or above required"
+      s"Java $required or above required, found $curr (${sys.props("java.home")}); set JAVA_HOME to a JDK 17+"
     )
   },
   assembly / assemblyJarName := {
