@@ -1,0 +1,3 @@
+# LF in the repository and in every checkout, Windows included: specs compare
+# multi-line string literals with LF output, so a CRLF checkout fails them.
+* text=auto eol=lf
