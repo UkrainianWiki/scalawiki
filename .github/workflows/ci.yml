@@ -4,17 +4,28 @@ on:
   push:
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # Java 17 is the baseline (build.sbt compiles with -release:17);
+        # 21 checks the next LTS.
+        java: [17, 21]
+    name: test (JDK ${{ matrix.java }})
     steps:
+      # Actions by commit SHA, the release tag in the comment.
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       - name: Setup JDK
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
-          java-version: 11
+          java-version: ${{ matrix.java }}
           cache: sbt
       - name: Install sbt
-        uses: sbt/setup-sbt@v1
+        uses: sbt/setup-sbt@ecad189dd245444b9ae0a0cd5922fd938b88906f # v1.5.12
+      # Anonymous: never pass SCALAWIKI_LOGIN / SCALAWIKI_PASSWORD (or other wiki credentials)
+      # to any job; the build makes tests ignore them anyway (scalawiki.anonymous).
+      # Live-wiki specs stay skipped: no -Dscalawiki.live=true here.
       - name: Build and Test
         run: sbt -v +test

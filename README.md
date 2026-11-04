@@ -5,7 +5,8 @@ scalawiki is an experimental MediaWiki client in Scala on early stages of develo
 
 
 [![CI](https://github.com/UkrainianWiki/scalawiki/actions/workflows/ci.yml/badge.svg)](https://github.com/UkrainianWiki/scalawiki/actions/workflows/ci.yml)
-[![codecov.io](https://codecov.io/github/UkrainianWiki/scalawiki/coverage.svg?branch=master)](https://codecov.io/github/UkrainianWiki/scalawiki?branch=master)
+
+**Requirements:** Java 17 or later, to build and to use the jars, which are compiled for Java 17. Scala 2.13, sbt. See [RUNNING.md](RUNNING.md) to run the WLM/WLE statistics.
 
 
 Why [another client library for MediaWiki](https://www.mediawiki.org/wiki/API:Client_code)?

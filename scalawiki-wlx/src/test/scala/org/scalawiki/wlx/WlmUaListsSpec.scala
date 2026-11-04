@@ -6,9 +6,14 @@ import org.scalawiki.wlx.dto.Contest
 import org.scalawiki.wlx.query.MonumentQuery
 import org.specs2.mutable.Specification
 
+/** Reads every WLM-UA monument list from the live uk.wikipedia.org (hundreds of API
+  * requests without a local http-cache/): only with -Dscalawiki.live=true.
+  */
 class WlmUaListsSpec extends Specification {
 
   sequential
+
+  skipAllUnless(sys.props.get("scalawiki.live").contains("true"))
 
   val campaign = "wlm-ua"
   val cacheName = s"$campaign-2019"
@@ -16,11 +21,12 @@ class WlmUaListsSpec extends Specification {
   val contest = Contest.byCampaign(campaign).get.copy(year = 2019)
   val country = contest.country
 
-  val bot =
+  // lazy: built only when an example runs, so a skipped spec makes no request
+  lazy val bot =
     new CachedBot(Site.ukWiki, cacheName + "-wiki", true)
-  val monumentQuery = MonumentQuery.create(contest)(bot)
-  val monumentDb = MonumentDB.getMonumentDbBlocking(contest, monumentQuery)
-  val all = monumentDb.allMonuments
+  lazy val monumentQuery = MonumentQuery.create(contest)(bot)
+  lazy val monumentDb = MonumentDB.getMonumentDbBlocking(contest, monumentQuery)
+  lazy val all = monumentDb.allMonuments
 
   "places" should {
     "be mostly detected" in {

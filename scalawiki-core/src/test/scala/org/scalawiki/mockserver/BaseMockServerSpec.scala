@@ -23,7 +23,8 @@ class BaseMockServerSpec extends Specification with StubServer {
   val http = new HttpClientPekko(system)
   val apiUrl = "/w/api.php"
 
-  def getBot: MwBot = MwBot.fromHost(Host, Protocol, Some(Port))
+  // never the environment's account: it would be sent to the mock server
+  def getBot: MwBot = MwBot.fromHost(Host, Protocol, Some(Port), loginInfo = None)
 
   def login(wiki: MwBot, username: String, passwd: String): String =
     await(wiki.login(username, passwd))

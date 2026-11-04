@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  WLM/WLE statistics runner -- no sbt required at run time (needs Java 11+).
+  WLM/WLE statistics runner -- no sbt required at run time (needs Java 17+).
 
 .DESCRIPTION
   Runs org.scalawiki.wlx.stat.Statistics from the self-contained fat jar built
@@ -16,7 +16,7 @@
 
 .NOTES
   Environment:
-    JAVA_HOME   JDK to use (must be 11+). Otherwise `java` from PATH.
+    JAVA_HOME   JDK to use (must be 17+). Otherwise `java` from PATH.
     SW_JAR      Explicit path to the fat jar (skips autodiscovery + build).
     JAVA_OPTS   Extra JVM options, e.g. "-Xmx6g".
 #>
@@ -57,7 +57,7 @@ if (-not $java) { throw "run-stats: no java found (set JAVA_HOME or put java on 
 $verLine = (& $java -version 2>&1 | Select-Object -First 1 | Out-String)
 if ($verLine -match 'version "(?:1\.)?(\d+)') {
   $major = [int]$Matches[1]
-  if ($major -lt 11) { throw "run-stats: Java 11+ required, found major version $major ($java)" }
+  if ($major -lt 17) { throw "run-stats: Java 17+ required, found major version $major ($java)" }
 }
 
 # --- locate (or build once) the fat jar --------------------------------

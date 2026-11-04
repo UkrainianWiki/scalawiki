@@ -28,12 +28,10 @@ object Dependencies {
   val SwcEngineV = "3.1.9"
   val TypesafeConfigV = "1.4.3"
 
+  // Bintray (Scalaz, rick-beton, softprops) and JCenter shut down in 2021-2022;
+  // everything resolves from Maven Central, sbt's default.
   val resolvers = Seq(
-    "Typesafe Repo" at "https://repo.typesafe.com/typesafe/releases/",
-    "Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases",
-    Resolver.jcenterRepo,
-    Resolver.bintrayRepo("rick-beton", "maven"),
-    Resolver.bintrayRepo("softprops", "maven")
+    "Typesafe Repo" at "https://repo.typesafe.com/typesafe/releases/"
   )
 
   val overrides = Seq(

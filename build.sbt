@@ -3,6 +3,14 @@ import Dependencies._
 
 ThisBuild / Test / fork := true
 
+// Tests use the wikis anonymously: LoginInfo.fromEnv ignores SCALAWIKI_LOGIN / SCALAWIKI_PASSWORD
+// in the forked test JVM unless sbt runs with -Dscalawiki.allowTestLogin=true (no CI job does).
+// Specs that read live wikis at volume run only with -Dscalawiki.live=true.
+ThisBuild / Test / javaOptions ++= {
+  val anonymous = !sys.props.get("scalawiki.allowTestLogin").contains("true")
+  Seq(s"-Dscalawiki.anonymous=$anonymous") ++ sys.props.get("scalawiki.live").map(v => s"-Dscalawiki.live=$v")
+}
+
 // UTF-8 stdout/stderr so Cyrillic in reports/tests isn't mangled to '?'.
 ThisBuild / Test / javaOptions ++= Seq(
   "-Dfile.encoding=UTF-8",
@@ -19,7 +27,9 @@ lazy val commonSettings = Seq(
   scalaVersion := crossScalaVersions.value.last,
   isScala213 := scalaVersion.value.startsWith("2.13."),
   Global / excludeLintKeys += isScala213,
-  scalacOptions := Seq("-target:jvm-1.8"),
+  // Java 17 baseline: bytecode (class file 61) and JDK API both limited to 17.
+  scalacOptions := Seq("-release:17"),
+  javacOptions ++= Seq("--release", "17"),
 //  conflictManager := ConflictManager.strict,
   licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
   Keys.resolvers ++= Dependencies.resolvers,
@@ -33,11 +43,11 @@ lazy val commonSettings = Seq(
   dependencyOverrides ++= Dependencies.overrides,
   initialize := {
     val _ = initialize.value
-    val required = VersionNumber("11")
+    val required = VersionNumber("17")
     val curr = VersionNumber(sys.props("java.specification.version"))
     assert(
       CompatibleJavaVersion(curr, required),
-      s"Java $required or above required"
+      s"Java $required or above required, found $curr (${sys.props("java.home")}); set JAVA_HOME to a JDK 17+"
     )
   },
   assembly / assemblyJarName := {
