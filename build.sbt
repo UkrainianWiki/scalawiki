@@ -3,6 +3,14 @@ import Dependencies._
 
 ThisBuild / Test / fork := true
 
+// Tests use the wikis anonymously: LoginInfo.fromEnv ignores SCALAWIKI_LOGIN / SCALAWIKI_PASSWORD
+// in the forked test JVM unless sbt runs with -Dscalawiki.allowTestLogin=true (no CI job does).
+// Specs that read live wikis at volume run only with -Dscalawiki.live=true.
+ThisBuild / Test / javaOptions ++= {
+  val anonymous = !sys.props.get("scalawiki.allowTestLogin").contains("true")
+  Seq(s"-Dscalawiki.anonymous=$anonymous") ++ sys.props.get("scalawiki.live").map(v => s"-Dscalawiki.live=$v")
+}
+
 // UTF-8 stdout/stderr so Cyrillic in reports/tests isn't mangled to '?'.
 ThisBuild / Test / javaOptions ++= Seq(
   "-Dfile.encoding=UTF-8",
