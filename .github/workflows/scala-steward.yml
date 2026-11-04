@@ -7,11 +7,18 @@ name: Launch Scala Steward
 
 jobs:
   scala-steward:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: Launch Scala Steward
     steps:
+      # Actions by commit SHA, the release tag in the comment.
+      # Scala Steward runs sbt on this build, whose guard needs Java 17.
+      - name: Setup JDK
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 17
       - name: Launch Scala Steward
-        uses: scala-steward-org/scala-steward-action@v2
+        uses: scala-steward-org/scala-steward-action@3e5cae868160200afda12b57c150e56cede989ab # v2.97.0
         with:
           github-app-id: ${{ secrets.APP_ID }}
           github-app-installation-id: ${{ secrets.APP_INSTALLATION_ID }}
