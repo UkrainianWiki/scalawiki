@@ -12,7 +12,7 @@ object Dependencies {
   val JimFsV = "1.3.0"
   val JodaTimeV = "2.13.0"
   val JSoupV = "1.18.3"
-  val LogbackClassicV = "1.5.15"
+  val LogbackClassicV = "1.5.38"
   val MockServerV = "5.15.0"
   val ReactiveStreamsV = "1.0.4"
   val RetryV = "0.3.6"
