@@ -65,7 +65,7 @@ object Dependencies {
 
     object Pekko {
       val PekkoV = "1.0.3"
-      val PekkoHttpV = "1.0.1"
+      val PekkoHttpV = "1.4.2"
 
       val actor = "org.apache.pekko" %% "pekko-actor" % PekkoV
       val slf4j = "org.apache.pekko" %% "pekko-slf4j" % PekkoV
