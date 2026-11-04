@@ -5,6 +5,13 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Java 17 is the baseline (build.sbt compiles with -release:17);
+        # 21 checks the next LTS.
+        java: [17, 21]
+    name: test (JDK ${{ matrix.java }})
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -12,7 +19,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: temurin
-          java-version: 11
+          java-version: ${{ matrix.java }}
           cache: sbt
       - name: Install sbt
         uses: sbt/setup-sbt@v1

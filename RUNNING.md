@@ -1,7 +1,7 @@
 # Running WLM/WLE statistics without sbt
 
 The stats engine (`org.scalawiki.wlx.stat.Statistics`) can be run from a single
-self-contained fat jar. Only a **JDK/JRE 11+** is required at run time — sbt is
+self-contained fat jar. Only a **JDK/JRE 17+** is required at run time — sbt is
 needed once to build the jar, and never again unless the code changes.
 
 ## 1. Build the fat jar (once, needs sbt)
@@ -47,7 +47,9 @@ java \
 ```
 
 No `--add-exports` / `--add-opens` flags are needed — the engine runs on any
-JDK 11+ (including 17, 21) out of the box.
+JDK 17+ (including 21) out of the box. Java 17 is the minimum: the classes
+are compiled for Java 17 (class file version 61), so an older JVM refuses the
+jar with `UnsupportedClassVersionError`.
 
 ## Console output and logs
 
@@ -171,7 +173,7 @@ csv-cache/wlm-ua-monuments.csv     # every parsed monument + its source page's l
 
 | var         | meaning                                                        |
 |-------------|---------------------------------------------------------------|
-| `JAVA_HOME` | JDK to use (must be 11+); otherwise `java` from `PATH`         |
+| `JAVA_HOME` | JDK to use (must be 17+); otherwise `java` from `PATH`         |
 | `SW_JAR`    | explicit path to the fat jar (skips autodiscovery and build)  |
 | `JAVA_OPTS` | extra JVM options, e.g. `JAVA_OPTS="-Xmx6g"`                   |
 

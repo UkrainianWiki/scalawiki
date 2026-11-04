@@ -8,7 +8,7 @@ scalawiki is a Scala MediaWiki API client, built for batch/parallel data fetchin
 
 ## Build system
 
-SBT multi-module project, Scala 2.13 only, emits JVM 8-compatible bytecode (`-target:jvm-1.8`), requires Java 11+ to build and run (CI is JDK 11; `build.sbt`'s `initialize` asserts it).
+SBT multi-module project, Scala 2.13 only, Java 17 baseline: compiles with `-release:17` (scalac) / `--release 17` (javac), so it emits class file version 61 and may use the Java 17 API; requires Java 17+ to build and run (`build.sbt`'s `initialize` asserts it). CI tests JDK 17 and 21.
 
 Modules (`build.sbt`):
 - `scalawiki-core` — MediaWiki API client: `MwBot` (the bot/client), DSL for building API queries (`dto/cmd`), JSON parsing (`json`), HTTP layer over Pekko HTTP (`http`), wikitext parsing (`wikitext`), page/query abstractions (`query`).
@@ -30,13 +30,13 @@ sbt assembly             # build fat jars (scalawiki-wlx's assembly main class i
 sbt scalawiki-wlx/assembly   # just the stats fat jar -> scalawiki-wlx/target/scala-2.13/scalawiki-wlx-<ver>.jar
 ```
 
-To run the WLM/WLE stats engine **without sbt** (JDK 11+ only), build the fat jar
+To run the WLM/WLE stats engine **without sbt** (JDK 17+ only), build the fat jar
 once and use the `run-stats.sh` / `run-stats.cmd` (Windows) / `run-stats.ps1`
 wrappers at the repo root — see `RUNNING.md`.
 
 Tests use specs2 (`org.specs2.mutable.Specification`), not ScalaTest. `Test / fork := true` is set globally, and `assembly / test := {}` skips tests during assembly builds.
 
-CI (`.github/workflows/ci.yml`) runs on JDK 11 via `sbt -v +test`. `appveyor.yml` is a legacy/parallel Windows CI config building with `sbt clean compile test` on JDK 11 — both exist, ci.yml (GitHub Actions) is the primary one.
+CI (`.github/workflows/ci.yml`) runs `sbt -v +test` on JDK 17 and 21 (a matrix). `appveyor.yml` is a legacy Windows CI config (JDK 11, sbt 1.5.3); AppVeyor has not reported on a commit since April 2026 and failed before that, so treat it as dead — ci.yml (GitHub Actions) is the CI.
 
 ## Architecture
 

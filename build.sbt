@@ -19,7 +19,9 @@ lazy val commonSettings = Seq(
   scalaVersion := crossScalaVersions.value.last,
   isScala213 := scalaVersion.value.startsWith("2.13."),
   Global / excludeLintKeys += isScala213,
-  scalacOptions := Seq("-target:jvm-1.8"),
+  // Java 17 baseline: bytecode (class file 61) and JDK API both limited to 17.
+  scalacOptions := Seq("-release:17"),
+  javacOptions ++= Seq("--release", "17"),
 //  conflictManager := ConflictManager.strict,
   licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
   Keys.resolvers ++= Dependencies.resolvers,
@@ -33,7 +35,7 @@ lazy val commonSettings = Seq(
   dependencyOverrides ++= Dependencies.overrides,
   initialize := {
     val _ = initialize.value
-    val required = VersionNumber("11")
+    val required = VersionNumber("17")
     val curr = VersionNumber(sys.props("java.specification.version"))
     assert(
       CompatibleJavaVersion(curr, required),

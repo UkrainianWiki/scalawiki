@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# WLM/WLE statistics runner -- no sbt required at run time (needs Java 11+).
+# WLM/WLE statistics runner -- no sbt required at run time (needs Java 17+).
 #
 # Runs org.scalawiki.wlx.stat.Statistics from the self-contained fat jar built
 # by `sbt scalawiki-wlx/assembly`. If the jar is missing it is built once; after
@@ -12,7 +12,7 @@
 #   ./run-stats.sh -c wle-ua -y 2025 --gallery --regional-gallery
 #
 # Environment:
-#   JAVA_HOME   JDK to use (must be 11+). Otherwise `java` from PATH.
+#   JAVA_HOME   JDK to use (must be 17+). Otherwise `java` from PATH.
 #   SW_JAR      Explicit path to the fat jar (skips autodiscovery + build).
 #   JAVA_OPTS   Extra JVM options, e.g. JAVA_OPTS="-Xmx6g".
 #
@@ -41,8 +41,8 @@ fi
 ver_raw="$("$java_bin" -version 2>&1 | head -1 | sed -E 's/.*version "([0-9._]+).*/\1/')"
 major="${ver_raw%%.*}"
 [[ "$major" == "1" ]] && major="$(printf '%s' "$ver_raw" | cut -d. -f2)"
-if [[ "$major" =~ ^[0-9]+$ && "$major" -lt 11 ]]; then
-  echo "run-stats: Java 11+ required, found major version $major ($java_bin)" >&2
+if [[ "$major" =~ ^[0-9]+$ && "$major" -lt 17 ]]; then
+  echo "run-stats: Java 17+ required, found major version $major ($java_bin)" >&2
   exit 1
 fi
 
