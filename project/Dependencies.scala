@@ -26,7 +26,7 @@ object Dependencies {
   val ProgressBarV = "0.10.1"
   val Slf4jV = "2.0.16"
   val SwcEngineV = "3.1.9"
-  val TypesafeConfigV = "1.4.3"
+  val TypesafeConfigV = "1.4.10"
 
   val resolvers = Seq(
     "Typesafe Repo" at "https://repo.typesafe.com/typesafe/releases/",
