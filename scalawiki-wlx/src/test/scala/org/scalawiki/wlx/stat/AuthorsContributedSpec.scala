@@ -171,45 +171,45 @@ class AuthorsContributedSpec extends Specification {
     }
 
     "message the authors' accounts, and list those without one as text" in {
-      val accounts = Map("Ykvach" -> "Ykvach", "Artemka" -> "Artemco", "Artemco" -> "Artemco")
-      AuthorsStat.authorsList(Seq("Artemco", "Artemka", "Ykvach", "roma.wem"), accounts) ===
-        """# {{#target:User_talk:Artemco|}}
-          |# {{#target:User_talk:Ykvach|}}
-          |# roma.wem""".stripMargin
+      val accounts = Map("Zed" -> "Zed", "Bobby" -> "Bob", "Bob" -> "Bob")
+      AuthorsStat.authorsList(Seq("Bob", "Bobby", "Zed", "remote.author"), accounts) ===
+        """# {{#target:User_talk:Bob|}}
+          |# {{#target:User_talk:Zed|}}
+          |# remote.author""".stripMargin
     }
 
     "find the authors that have a Commons account" in {
       val bot = new UsersBot
       val existing = (1 to 60).map(i => s"Author_$i")
-      val accounts = Await.result(AuthorsStat.accounts(bot, existing ++ Seq("Missing one", "bad#name", "roma.wem")), 5.seconds)
+      val accounts = Await.result(AuthorsStat.accounts(bot, existing ++ Seq("Missing one", "bad#name", "remote.author")), 5.seconds)
 
-      accounts === (existing.map(_.replace('_', ' ')) :+ "Roma.wem").map(name => name -> name).toMap
+      accounts === (existing.map(_.replace('_', ' ')) :+ "Remote.author").map(name => name -> name).toMap
       bot.requested.size === 2
     }
 
     "find the account an author was renamed to" in {
-      val bot = new UsersBot(renamed = Map("Artemka" -> "Artemco", "Donbass360" -> "Сергей Орлик"))
-      Await.result(AuthorsStat.accounts(bot, Seq("Artemka", "Donbass360", "Missing one")), 5.seconds) ===
-        Map("Artemka" -> "Artemco", "Donbass360" -> "Сергей Орлик")
+      val bot = new UsersBot(renamed = Map("Bobby" -> "Bob", "Carol2020" -> "Кароль Новий"))
+      Await.result(AuthorsStat.accounts(bot, Seq("Bobby", "Carol2020", "Missing one")), 5.seconds) ===
+        Map("Bobby" -> "Bob", "Carol2020" -> "Кароль Новий")
     }
 
     "follow a redirect however it is spelled" in {
       Seq("#redirect[[User talk:%s]]", "#Redirect [[user_talk:%s|talk]]", "#ПЕРЕНАПРАВЛЕННЯ [[Обговорення користувача:%s]]",
         "  #перенаправлення[[:User talk:%s#top]]").map { redirect =>
-        val bot = new UsersBot(renamed = Map("Artemka" -> "Artemco"), redirect = redirect)
-        Await.result(AuthorsStat.accounts(bot, Seq("Artemka")), 5.seconds)
-      } must contain(be_===(Map("Artemka" -> "Artemco"))).forall
+        val bot = new UsersBot(renamed = Map("Bobby" -> "Bob"), redirect = redirect)
+        Await.result(AuthorsStat.accounts(bot, Seq("Bobby")), 5.seconds)
+      } must contain(be_===(Map("Bobby" -> "Bob"))).forall
     }
 
     "count an author renamed since once, under their account" in {
       val monumentDb = new MonumentDB(contest, monuments(1, "05", "Podillya"))
       val images = Seq(
-        Image("File:Before.jpg", monumentIds = List("05-xxx-0001"), author = Some("Artemka")),
-        Image("File:After.jpg", monumentIds = List("05-xxx-0001"), author = Some("Artemco"))
+        Image("File:Before.jpg", monumentIds = List("05-xxx-0001"), author = Some("Bobby")),
+        Image("File:After.jpg", monumentIds = List("05-xxx-0001"), author = Some("Bob"))
       )
       val db = new ImageDB(contest, images, monumentDb)
       val stat = ContestStat(contest, contest.year, Some(monumentDb), db, db, Seq(db))
-        .withAccounts(Map("Artemka" -> "Artemco", "Artemco" -> "Artemco"))
+        .withAccounts(Map("Bobby" -> "Bob", "Bob" -> "Bob"))
 
       val table = new AuthorsStat().authorsContributedTable(stat.dbsByYear, stat.totalImageDb, Some(monumentDb),
         listAuthors = false)
@@ -220,40 +220,40 @@ class AuthorsContributedSpec extends Specification {
     "put every report's authors under their current accounts" in {
       val monumentDb = new MonumentDB(contest, monuments(1, "05", "Podillya"))
       val images = Seq(
-        Image("File:Old.jpg", monumentIds = List("05-xxx-0001"), author = Some("Artemka")),
-        Image("File:Panoramio.jpg", monumentIds = List("05-xxx-0001"), author = Some("roma.wem")),
+        Image("File:Old.jpg", monumentIds = List("05-xxx-0001"), author = Some("Bobby")),
+        Image("File:Panoramio.jpg", monumentIds = List("05-xxx-0001"), author = Some("remote.author")),
         Image("File:Unknown.jpg", monumentIds = List("05-xxx-0001"), author = Some(""))
       )
       val db = new ImageDB(contest, images, monumentDb)
       val stat = ContestStat(contest, contest.year, Some(monumentDb), db, db, Seq(db))
-      stat.authors.toSet === Set("Artemka", "roma.wem")
+      stat.authors.toSet === Set("Bobby", "remote.author")
 
       // the lookup finds only the name it was asked about, the old one
-      val renamed = stat.withAccounts(Map("Artemka" -> "Artemco"))
+      val renamed = stat.withAccounts(Map("Bobby" -> "Bob"))
 
       (renamed.currentYearImageDb eq renamed.dbsByYear.last) must beTrue
       Seq(renamed.currentYearImageDb, renamed.totalImageDb).map(_.authors) must contain(
-        be_===(Set("Artemco", "roma.wem", ""))).forall
+        be_===(Set("Bob", "remote.author", ""))).forall
       AuthorsStat.authorsList(AuthorsStat.authorsByRegion(renamed.totalImageDb).flatMap(_._2), renamed.accounts.get) ===
-        """# {{#target:User_talk:Artemco|}}
-          |# roma.wem""".stripMargin
+        """# {{#target:User_talk:Bob|}}
+          |# remote.author""".stripMargin
     }
 
     "look up again only the authors not cached as accounts" in {
       val cache = Files.createTempDirectory("accounts").resolve("commons-accounts.txt")
-      val authors = Seq("Ykvach", "roma.wem", "Missing one", "Artemka")
-      val renamed = Map("Artemka" -> "Artemco")
+      val authors = Seq("Zed", "remote.author", "Missing one", "Bobby")
+      val renamed = Map("Bobby" -> "Bob")
 
       val first = new UsersBot(renamed)
       Await.result(AuthorsStat.accounts(first, authors, Some(cache)), 5.seconds) ===
-        Map("Ykvach" -> "Ykvach", "Roma.wem" -> "Roma.wem", "Artemka" -> "Artemco")
-      Files.readAllLines(cache).asScala === Seq("Artemka\tArtemco", "Roma.wem", "Ykvach")
+        Map("Zed" -> "Zed", "Remote.author" -> "Remote.author", "Bobby" -> "Bob")
+      Files.readAllLines(cache).asScala === Seq("Bobby\tBob", "Remote.author", "Zed")
 
       val second = new UsersBot(renamed)
       Await.result(AuthorsStat.accounts(second, authors :+ "Newcomer", Some(cache)), 5.seconds) ===
-        Map("Ykvach" -> "Ykvach", "Roma.wem" -> "Roma.wem", "Artemka" -> "Artemco", "Newcomer" -> "Newcomer")
+        Map("Zed" -> "Zed", "Remote.author" -> "Remote.author", "Bobby" -> "Bob", "Newcomer" -> "Newcomer")
       second.requested.flatten.toSet === Set("Missing one", "Newcomer")
-      Files.readAllLines(cache).asScala === Seq("Artemka\tArtemco", "Newcomer", "Roma.wem", "Ykvach")
+      Files.readAllLines(cache).asScala === Seq("Bobby\tBob", "Newcomer", "Remote.author", "Zed")
     }
 
     "not count a file with no author as an author" in {

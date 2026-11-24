@@ -33,8 +33,8 @@ class LoginSpec(implicit ee: ExecutionEnv)
   val loginSuccess =
     """{ "login": {
                 "result": "Success",
-                "lguserid":678,
-                "lgusername":"IlyaBot",
+                "lguserid":1,
+                "lgusername":"ExampleBot",
                 "lgtoken":"token-value",
                 "cookieprefix":"enwiki",
                 "sessionid":"sessionid-value"

@@ -252,7 +252,8 @@ object Output {
     perRegion.mkString("\n")
   }
 
-  def byCity(imageDb: ImageDB) = {
+  /** Publishes per-city monument galleries as subpages of `rootPage` (e.g. a user subpage) and a list of them on it. */
+  def byCity(imageDb: ImageDB, rootPage: String) = {
 
     val ukWiki = MwBot.fromHost(MwBot.ukWiki)
     //    val cities = Seq("Бар (місто)", "Бершадь", "Гайсин", "Гнівань", "Жмеринка", "Іллінці",
@@ -281,7 +282,7 @@ object Output {
     def cityShort(city: String) =
       cities.find(city.contains).getOrElse("").split(" ")(0)
 
-    def page(city: String) = "User:Ilya/Миколаївська область/" + city
+    def page(city: String) = s"$rootPage/$city"
 
     all.groupBy(m => cityShort(m.city.getOrElse(""))).foreach { case (city, monuments) =>
       val galleries = monuments.map { m =>
@@ -299,7 +300,7 @@ object Output {
     }
 
     val list = cities.map(city => s"#[[${page(city)}|$city]]").mkString("\n")
-    ukWiki.page("User:Ilya/Миколаївська область").edit(list)
+    ukWiki.page(rootPage).edit(list)
   }
 
   def articleStatistics(monumentDb: MonumentDB, imageDb: ImageDB) = {

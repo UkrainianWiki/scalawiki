@@ -32,6 +32,13 @@ class BaseIntegrationSpec extends Specification {
       .getOrElse("No LoginInfo")
   }
 
+  /** A subpage of the logged-in account's user page (the account part of a
+    * `Account@botpassword` login), for test edits. */
+  def userSubpage(subpage: String): String = {
+    val account = LoginInfo.fromEnv().map(_.login.takeWhile(_ != '@')).getOrElse("Example")
+    s"User:$account/$subpage"
+  }
+
   def await[T](future: Future[T]): T = Await.result(future, http.timeout)
 
 }

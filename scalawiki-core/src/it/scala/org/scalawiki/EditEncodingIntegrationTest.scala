@@ -9,7 +9,7 @@ class EditEncodingIntegrationTest extends BaseIntegrationSpec {
 //      val result = login(bot)
 //      result === "Success"
 //
-//      val response = await(bot.page("User:IlyaBot/тест1").edit("текст", "коментар"))
+//      val response = await(bot.page(userSubpage("тест1")).edit("текст", "коментар"))
 //      response === "Success"
 //
 //    }

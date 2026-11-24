@@ -4,50 +4,50 @@
     "pages": {
       "-1": {
         "ns": 0,
-        "title": "Ilya",
+        "title": "ExampleUser",
         "missing": ""
       }
     },
     "globaluserinfo": {
       "home": "ukwiki",
-      "id": 527,
-      "registration": "2008-03-25T17:19:03Z",
-      "name": "Ilya",
+      "id": 12345,
+      "registration": "2010-01-01T00:00:00Z",
+      "name": "ExampleUser",
       "merged": [
         {
           "wiki": "enwiki",
           "url": "https://en.wikipedia.org",
-          "timestamp": "2009-09-03T15:19:13Z",
+          "timestamp": "2010-01-01T00:00:00Z",
           "method": "password",
-          "editcount": 1350,
-          "registration": "2005-02-20T10:08:05Z"
+          "editcount": 10,
+          "registration": "2010-01-01T00:00:00Z"
         },
         {
           "wiki": "commonswiki",
           "url": "https://commons.wikimedia.org",
-          "timestamp": "2009-03-07T18:28:02Z",
+          "timestamp": "2010-01-01T00:00:00Z",
           "method": "login",
-          "editcount": 14598,
-          "registration": "2009-03-07T18:28:02Z"
+          "editcount": 20,
+          "registration": "2010-01-01T00:00:00Z"
         },
         {
           "wiki": "ukwiki",
           "url": "https://uk.wikipedia.org",
-          "timestamp": "2008-03-25T17:19:03Z",
+          "timestamp": "2010-01-01T00:00:00Z",
           "method": "primary",
-          "editcount": 29290,
-          "registration": "2016-03-07T10:17:25Z"
+          "editcount": 30,
+          "registration": "2010-01-01T00:00:00Z"
         },
         {
           "wiki": "ukwiktionary",
           "url": "https://uk.wiktionary.org",
-          "timestamp": "2008-03-25T17:19:03Z",
+          "timestamp": "2010-01-01T00:00:00Z",
           "method": "password",
-          "editcount": 1190,
-          "registration": "2016-03-07T10:17:25Z"
+          "editcount": 40,
+          "registration": "2010-01-01T00:00:00Z"
         }
       ],
-      "editcount": 50208,
+      "editcount": 100,
       "unattached": []
     }
   }

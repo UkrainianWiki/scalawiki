@@ -147,18 +147,17 @@ object CsvComparator {
     override val delimiter = ';'
   }
 
-  val bankRaw = CSVReader
-    .open("/mnt/mint/home/ilya/wmua-finance/2016-2202.csv", "cp1251")(UA_CSV)
-    .all()
-  //    val appRaw = CSVReader.open("/home/ilya/Downloads/2016-2202-app.csv").all()
-  val appRaw = CSVReader.open("/home/ilya/Downloads/wmua_fin (5).csv").all()
+  def bankRaw(path: String) = CSVReader.open(path, "cp1251")(UA_CSV).all()
+  def appRaw(path: String) = CSVReader.open(path).all()
 
   val bankDateExample = "18.01.2016 15:00"
   val appDateExample = "2016-12-30"
 
+  /** usage: CsvComparator <bank statement csv (cp1251, ';')> <app export csv> */
   def main(args: Array[String]): Unit = {
-    val bankOps = new BankOps(bankRaw)
-    val appOps = new AppOps(appRaw)
+    require(args.length == 2, "usage: CsvComparator <bank statement csv> <app export csv>")
+    val bankOps = new BankOps(bankRaw(args(0)))
+    val appOps = new AppOps(appRaw(args(1)))
 
     val sumDiff = appOps.diff(_.sumPlus, bankOps)
     println(sumDiff)

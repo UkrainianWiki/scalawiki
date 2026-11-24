@@ -25,8 +25,8 @@ class LoginMockServerSpec extends BaseMockServerSpec {
   val loginSuccess =
     """{ "login": {
                 "result": "Success",
-                "lguserid":678,
-                "lgusername":"IlyaBot",
+                "lguserid":1,
+                "lgusername":"ExampleBot",
                 "lgtoken":"token-value",
                 "cookieprefix":"enwiki",
                 "sessionid":"sessionid-value"
@@ -40,7 +40,7 @@ class LoginMockServerSpec extends BaseMockServerSpec {
   val throttledResult = result("Throttled")
 
   "login" should {
-    "succesfully login IlyaBot" in {
+    "succesfully login ExampleBot" in {
       val loginAction = withCredentials(user, password)
       stubOk(loginAction ++ Map("lgtoken" -> "token-value+\\"), loginSuccess)
       stubOk(loginAction, needToken)
@@ -51,7 +51,7 @@ class LoginMockServerSpec extends BaseMockServerSpec {
   }
 
   "login" should {
-    "reject login IlyaBot with wrong passwd" in {
+    "reject login ExampleBot with wrong passwd" in {
       val loginAction = withCredentials(user, wrongPassword)
       stubOk(loginAction ++ Map("lgtoken" -> "token-value+\\"), wrongPassResult)
       stubOk(loginAction, needToken)
