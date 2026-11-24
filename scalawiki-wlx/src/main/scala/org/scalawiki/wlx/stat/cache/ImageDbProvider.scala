@@ -440,18 +440,26 @@ class ImageDbProvider(
         // slim rows can't be written back: re-read them in full, only now that
         // the fetch is done, so they aren't held during it
         val rows = slimRows.fold(cached)(_.readFull())
-        val kept = rows.collect {
-          case i
-              if i.pageId.exists(id => !refetch.contains(id) && !goneIds.contains(id)) ||
-                i.pageId.isEmpty =>
-            backfill(i)
-        }
-
-        val fetchedIds = fetched.flatMap(_.pageId).toSet
+        val fetchedById = fetched.iterator.flatMap(i => i.pageId.map(_ -> i)).toMap
+        val fetchedIds = fetchedById.keySet
         // A partial refetch (transient error resolving some ids) must not silently
         // drop a row we still know about: fall back to the stale cached copy.
         val missedRefetch = refetch -- fetchedIds
         val staleKept = rows.filter(_.pageId.exists(id => missedRefetch.contains(id) && !newIds.contains(id)))
+
+        // Rows keep their cached position, a refetched (changed) file replacing its
+        // row in place: the reports list images in this order, so appending changed
+        // files would reshuffle the published galleries on every run where some file
+        // was merely re-categorized. Only files new to the cache go at the end.
+        val kept = rows.flatMap { i =>
+          i.pageId match {
+            case Some(id) if goneIds.contains(id) => None
+            case Some(id) if refetch.contains(id) => fetchedById.get(id).orElse(Some(i))
+            case _                                => Some(backfill(i))
+          }
+        }
+        val cachedIds = rows.iterator.flatMap(_.pageId).toSet
+        val added = fetched.filter(_.pageId.forall(id => !cachedIds.contains(id)))
         if (missedRefetch.nonEmpty) {
           incompleteSync.set(true)
           logger.warn(
@@ -462,7 +470,7 @@ class ImageDbProvider(
 
         val db = new ImageDB(
           yearContest,
-          dedupByPageId(kept ++ fetched ++ staleKept ++ extraImages),
+          dedupByPageId(kept ++ added ++ extraImages),
           monumentDb,
           config.minMpx
         )

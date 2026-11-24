@@ -491,6 +491,30 @@ class StatisticsCsvCacheSpec(implicit ee: ExecutionEnv)
       there was one(q).imagesWithTemplateByIds(contest, Set(1L))
     }
 
+    "keep a refetched image in its cached position, appending only new ones" in {
+      // reports list images in DB order: moving a changed file to the end would
+      // reshuffle the published galleries although nothing in them changed
+      val dir = cacheDir()
+      ImageCsvExporter.export(
+        new ImageDB(contest, Seq(
+          img("File:A.jpg", 1L, revId = Some(1L)),
+          img("File:B.jpg", 2L, revId = Some(2L)),
+          img("File:C.jpg", 3L, revId = Some(3L))
+        ), None), campaign, isCurrent = false, dir.toString)
+
+      val q = newImageQuery()
+      q.imageIdsFromCategory(contest) returns
+        Future.successful(Seq(rev(4L, 4L), rev(3L, 3L), rev(2L, 22L), rev(1L, 1L)))
+      q.imagesWithTemplateByIds(contest, Set(2L, 4L)) returns
+        Future.successful(Seq(img("File:D.jpg", 4L, revId = Some(4L)), img("File:B.jpg", 2L, revId = Some(22L))))
+
+      val data = stats(dir, q).gatherData(total = false).await
+
+      val expected = Seq("File:A.jpg", "File:B.jpg", "File:C.jpg", "File:D.jpg")
+      data.currentYearImageDb.images.map(_.title).toSeq must_== expected
+      ImageCsvImporter.imagesFromCsv(yearCsv(dir, 2016).toString).map(_.title) must_== expected
+    }
+
     "keep a cached image whose current revision is revision-deleted (no revid in the sweep)" in {
       val dir = cacheDir()
       ImageCsvExporter.export(
