@@ -261,8 +261,10 @@ scalawiki/
   wlx-daily.sh          # from scripts/server
   wlx-resync.sh         # from scripts/server, separate cache-only maintenance
   scalawiki-wlx.jar     # sbt scalawiki-wlx/assembly, renamed
-  secrets.env           # SCALAWIKI_LOGIN=IlyaBot@<bot password name>
+  secrets.env           # SCALAWIKI_LOGIN=<bot account>@<bot password name>
                         # SCALAWIKI_PASSWORD=<bot password>      (chmod 600)
+                        # SCALAWIKI_USER_AGENT="<Bot>/1.0 (<contact page or email>)"
+                        #   optional; the default names only the project page
   csv-cache/            # optional: copy csv-cache/wlm-UA-*.csv from a machine
                         # that has them, to skip the first full fetch
 ```

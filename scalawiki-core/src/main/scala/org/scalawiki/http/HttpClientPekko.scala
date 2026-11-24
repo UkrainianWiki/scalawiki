@@ -32,7 +32,7 @@ class HttpClientPekko(val system: ActorSystem = MwBot.system)
   // bot/contact, e.g. "MyBot/1.0 (https://example.org/MyBot; bot@example.org)".
   val userAgent = scala.sys.env.getOrElse(
     "SCALAWIKI_USER_AGENT",
-    "ScalaWiki/0.7 (https://github.com/UkrainianWiki/scalawiki; ukwikidev@wikimedia.org.ua)"
+    "ScalaWiki/0.7 (https://github.com/UkrainianWiki/scalawiki)"
   )
 
   import system.dispatcher

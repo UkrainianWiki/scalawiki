@@ -20,7 +20,7 @@ class MetaGlobalUserInfoSpec extends Specification with MockBotSpec {
             Unattached,
             EditCount
           ),
-          GuiUser("Ilya")
+          GuiUser("ExampleUser")
         )
       )
     )
@@ -32,7 +32,7 @@ class MetaGlobalUserInfoSpec extends Specification with MockBotSpec {
         Map(
           "action" -> "query",
           "meta" -> "globaluserinfo",
-          "guiuser" -> "Ilya",
+          "guiuser" -> "ExampleUser",
           "guiprop" -> "merged|unattached|editcount",
           "continue" -> ""
         ),
@@ -68,20 +68,20 @@ class MetaGlobalUserInfoSpec extends Specification with MockBotSpec {
       users must have size 1
 
       val user = users.head
-      user.name === Some("Ilya")
-      user.id === Some(527)
-      user.editCount === Some(50208)
-      // user.registration === Some(new DateTime("2008-03-25T17:19:03Z"))
+      user.name === Some("ExampleUser")
+      user.id === Some(12345)
+      user.editCount === Some(100)
+      // user.registration === Some(new DateTime("2010-01-01T00:00:00Z"))
 
       val accounts = user.sulAccounts
 
       accounts must have size 4
 
       accounts.map(a => (a.wiki, a.url, a.editCount)) === Seq(
-        ("enwiki", "https://en.wikipedia.org", 1350),
-        ("commonswiki", "https://commons.wikimedia.org", 14598),
-        ("ukwiki", "https://uk.wikipedia.org", 29290),
-        ("ukwiktionary", "https://uk.wiktionary.org", 1190)
+        ("enwiki", "https://en.wikipedia.org", 10),
+        ("commonswiki", "https://commons.wikimedia.org", 20),
+        ("ukwiki", "https://uk.wikipedia.org", 30),
+        ("ukwiktionary", "https://uk.wiktionary.org", 40)
       )
     }
   }

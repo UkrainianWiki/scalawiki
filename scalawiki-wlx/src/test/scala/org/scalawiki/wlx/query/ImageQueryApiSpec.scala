@@ -116,7 +116,7 @@ class ImageQueryApiSpec extends Specification {
     }
 
     "not be credited to a bot that uploaded it" in {
-      author(new HistoryBot("{{Art Photo|photographer=}}", Seq("IlyaBot"))) === None
+      author(new HistoryBot("{{Art Photo|photographer=}}", Seq("ExampleBot"))) === None
     }
 
     "not need the history when the page names the author" in {

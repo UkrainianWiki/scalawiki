@@ -55,11 +55,13 @@ class GlobalContrib extends QueryLibrary {
 }
 
 object GlobalContrib {
+  /** usage: GlobalContrib <user name> */
   def main(args: Array[String]) {
+    require(args.length == 1, "usage: GlobalContrib <user name>")
 
     new GlobalContrib()
       .checkContribs(
-        "Ilya",
+        args(0),
         ZonedDateTime.of(2016, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)
       )
       .map { size =>

@@ -90,7 +90,7 @@ class Pereiaslav(conf: Config, fs: FileSystem = FileSystems.getDefault) {
     val headers = Seq("dir", "article", "wlmId")
     val data = dirs.map(d => Seq(d, d, ""))
     val string = new Table(headers, data).asWiki
-    ukWiki.page("User:IlyaBot/test").edit("test", multi = false)
+    ukWiki.page(conf.getString("test-page")).edit("test", multi = false)
   }
 
   def makeUploadFiles(entries: Seq[Entry]): Unit = {
